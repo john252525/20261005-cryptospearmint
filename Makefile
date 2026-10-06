@@ -126,3 +126,37 @@ daily-report:
 
 snapshot:
 	@$(PYTHON) -m scripts.rollback snapshot
+
+# ────────────────────────────────────────────────────────────────────────
+#  Paper lifecycle + monitoring (glue v3)
+# ────────────────────────────────────────────────────────────────────────
+.pHONY: paper-run paper-stop monitoring-up monitoring-down
+
+paper-run: ## paper runner в фоне, pid в .paper.pid
+	@[ -f .paper.pid ] && { echo "[paper-run] already running: $$(cat .paper.pid)"; exit 1; } || true
+	@mkdir -p logs
+	nohup $(PYTHON) -m src.execution.paper_runner \
+	    --config $(CONFIG) --seconds $(SECONDS) \
+	    > logs/paper.log 2>&1 & echo $$! > .paper.pid
+	@echo "[paper-run] pid=$$(cat .paper.pid) log=logs/paper.log"
+
+paper-stop: ## остановить paper (SIGTERM; runner сам закрывается)
+	-@[ -f .paper.pid ] && kill -TERM $$(cat .paper.pid) && rm -f .paper.pid || echo "[paper-stop] not running"
+
+monitoring-up: ## prometheus exporter (пока заглушка, до появления src/monitoring)
+	@echo "[monitoring-up] no exporter yet — см. src/monitoring (не реализовано)"
+
+monitoring-down:
+	@echo "[monitoring-down] no-op"
+
+.PHONY: backtest-funding report-funding
+backtest-funding: ## funding-carry бэктест (long spot + short perp)
+	$(PYTHON) -m src.research.backtest_funding --config $(FUNDING_CONFIG)
+
+report-funding: backtest-funding ## последний stats.json + funding.csv
+	@latest=$$(ls -1dt backtest_funding/* | head -1); \
+	 echo "== $$latest =="; \
+	 cat "$$latest/stats.json"; \
+	 [ -f "$$latest/funding.csv" ] && echo "-- funding (tail) --" && tail -5 "$$latest/funding.csv"
+
+FUNDING_CONFIG ?= configs/funding_carry.yaml
