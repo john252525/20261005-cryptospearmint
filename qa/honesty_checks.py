@@ -337,8 +337,8 @@ CHECKS = {
 
 
 def _telegram(msg: str) -> None:
-    tok = os.getenv("TG_BOT_TOKEN")
-    chat = os.getenv("TG_CHAT_ID")
+    tok = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TG_BOT_TOKEN")
+    chat = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("TG_CHAT_ID")
     if not tok or not chat:
         log.warning("telegram not configured; drop: %s", msg)
         return

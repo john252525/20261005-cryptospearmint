@@ -26,6 +26,9 @@ def _load_dotenv() -> None:
             if not ln or ln.startswith("#") or "=" not in ln:
                 continue
             k, _, v = ln.partition("=")
+            # strip inline `# comment`, then quotes/surrounding space
+            if " #" in v:
+                v = v.split(" #", 1)[0]
             k, v = k.strip(), v.strip().strip('"').strip("'")
             os.environ.setdefault(k, v)
         return
@@ -48,7 +51,8 @@ def _now() -> str:
 
 
 def _telegram(msg: str) -> None:
-    tok, chat = os.getenv("TG_BOT_TOKEN"), os.getenv("TG_CHAT_ID")
+    tok = os.getenv("TELEGRAM_BOT_TOKEN") or os.getenv("TG_BOT_TOKEN")
+    chat = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("TG_CHAT_ID")
     if not tok or not chat:
         log.warning("telegram not configured: %s", msg)
         return
@@ -87,19 +91,31 @@ def _looks_like_placeholder(v: str) -> str | None:
     return None
 
 
-def _require_secret(name: str, expected_len: int | None = None) -> str:
-    v = os.getenv(name)
+def _require_secret(name: str, *aliases: str, expected_len: int | None = None) -> str:
+    """Read a secret. First name wins; aliases are tried in order.
+    Rejects empty, placeholder-looking, or wrong-length values."""
+    tried = (name, *aliases)
+    v = None
+    used = None
+    for n in tried:
+        cand = os.getenv(n)
+        if cand:
+            v, used = cand, n
+            break
     if not v:
-        raise ConfigError(f"missing env var {name}")
+        raise ConfigError(
+            f"missing secret: set one of {' / '.join(tried)} "
+            f"(project convention: {' / '.join(tried[:1])})"
+        )
     reason = _looks_like_placeholder(v)
     if reason:
         raise ConfigError(
-            f"{name} {reason} (len={len(v)}, masked={v[:2]}***{v[-2:]}). "
+            f"{used} {reason} (len={len(v)}, masked={v[:2]}***{v[-2:]}). "
             f"Put the real value in .env, not a placeholder."
         )
     if expected_len is not None and len(v) != expected_len:
         raise ConfigError(
-            f"{name} length={len(v)}, expected {expected_len}. "
+            f"{used} length={len(v)}, expected {expected_len}. "
             f"Likely wrong venue (mainnet vs testnet) or wrong exchange."
         )
     return v
@@ -119,10 +135,12 @@ def fetch_positions_binance_testnet() -> dict[str, float]:
         raise ConfigError("ccxt not installed: `uv add ccxt`") from e
 
     ex = ccxt.binanceusdm({
-        "apiKey": _require_secret("BN_KEY", 64), "secret": _require_secret("BN_SECRET", 64),
+        "apiKey": _require_secret("BINANCE_API_KEY", "BN_KEY", expected_len=64),
+        "secret": _require_secret("BINANCE_API_SECRET", "BN_SECRET", expected_len=64),
         "options": {"defaultType": "future"},
         "enableRateLimit": True,
         "timeout": CCXT_TIMEOUT_MS,
+        "adjustForTimeDifference": True,   # ccxt will sync once via public /time
     })
     # Binance RETIRED futures testnet (ccxt sandbox mode raises NotSupported).
     # Replacement per ccxt announcement: demo trading.
@@ -152,10 +170,12 @@ def fetch_positions_bybit_testnet() -> dict[str, float]:
     except ModuleNotFoundError as e:
         raise ConfigError("ccxt not installed: `uv add ccxt`") from e
     ex = ccxt.bybit({
-        "apiKey": _require_secret("BYBIT_KEY", 36), "secret": _require_secret("BYBIT_SECRET", 36),
+        "apiKey": _require_secret("BYBIT_API_KEY", "BYBIT_KEY", expected_len=36),
+        "secret": _require_secret("BYBIT_API_SECRET", "BYBIT_SECRET", expected_len=36),
         "options": {"defaultType": "linear"},
         "enableRateLimit": True,
         "timeout": CCXT_TIMEOUT_MS,
+        "adjustForTimeDifference": True,
     })
     ex.set_sandbox_mode(True)
     out: dict[str, float] = {}
@@ -270,9 +290,11 @@ def _preflight() -> None:
         raise ConfigError("ccxt not installed: `uv add ccxt`") from e
     venue = os.getenv("QA_VENUE", "binance")
     if venue == "binance":
-        _require_secret("BN_KEY",    64); _require_secret("BN_SECRET", 64)
+        _require_secret("BINANCE_API_KEY", "BN_KEY",         expected_len=64)
+        _require_secret("BINANCE_API_SECRET", "BN_SECRET",   expected_len=64)
     elif venue == "bybit":
-        _require_secret("BYBIT_KEY",   36); _require_secret("BYBIT_SECRET", 36)
+        _require_secret("BYBIT_API_KEY", "BYBIT_KEY",        expected_len=36)
+        _require_secret("BYBIT_API_SECRET", "BYBIT_SECRET",  expected_len=36)
     else:
         raise ConfigError(f"unknown venue: {venue}")
     log.info("preflight ok: venue=%s ccxt=%s timeout=%dms",
@@ -288,10 +310,18 @@ def main() -> None:
                     help="check config only, no network call")
     ap.add_argument("--verify-credentials", action="store_true",
                     help="auth-only probe against venue (no DB write)")
+    ap.add_argument("--check-clock", action="store_true",
+                    help="compare local vs venue server time, no auth")
+    ap.add_argument("--monitor-clock", action="store_true",
+                    help="loop: check clock every hour (optional)")
     a = ap.parse_args()
     if a.preflight:
         _preflight()
         return
+    if a.check_clock:
+        raise SystemExit(check_clock())
+    if a.monitor_clock:
+        monitor_loop(); return
     if a.verify_credentials:
         raise SystemExit(verify_credentials())
     if a.once:
@@ -314,7 +344,8 @@ def verify_credentials() -> int:
             except ModuleNotFoundError as e:
                 raise ConfigError("ccxt missing") from e
             ex = ccxt.binanceusdm({
-                "apiKey": _require_secret("BN_KEY", 64), "secret": _require_secret("BN_SECRET", 64),
+                "apiKey": _require_secret("BINANCE_API_KEY", "BN_KEY", expected_len=64),
+        "secret": _require_secret("BINANCE_API_SECRET", "BN_SECRET", expected_len=64),
                 "options": {"defaultType": "future"},
                 "enableRateLimit": True, "timeout": CCXT_TIMEOUT_MS,
             })
@@ -327,7 +358,8 @@ def verify_credentials() -> int:
             except ModuleNotFoundError as e:
                 raise ConfigError("ccxt missing") from e
             ex = ccxt.bybit({
-                "apiKey": _require_secret("BYBIT_KEY", 36), "secret": _require_secret("BYBIT_SECRET", 36),
+                "apiKey": _require_secret("BYBIT_API_KEY", "BYBIT_KEY", expected_len=36),
+        "secret": _require_secret("BYBIT_API_SECRET", "BYBIT_SECRET", expected_len=36),
                 "options": {"defaultType": "linear"},
                 "enableRateLimit": True, "timeout": CCXT_TIMEOUT_MS,
             })
@@ -356,6 +388,58 @@ def verify_credentials() -> int:
     except Exception as e:  # noqa: BLE001
         log.error("auth failed: %s: %s", type(e).__name__, e)
         return 3
+
+
+def check_clock() -> int:
+    """Compare local time with venue server time. Exit 0 if within tolerance.
+    No auth, no DB writes."""
+    import time as _t
+    venue = os.getenv("QA_VENUE", "binance")
+    try:
+        import ccxt  # type: ignore
+    except ModuleNotFoundError as e:
+        log.critical("ccxt missing: %s", e); return 2
+
+    ex = ccxt.binanceusdm() if venue == "binance" else ccxt.bybit()
+    if venue == "binance" and hasattr(ex, "enableDemoTrading"):
+        ex.enableDemoTrading(True)
+    if venue == "bybit":
+        ex.set_sandbox_mode(True)
+    ex.timeout = CCXT_TIMEOUT_MS
+
+    try:
+        srv_ms = ex.fetch_time()
+    except Exception as e:  # noqa: BLE001
+        log.error("fetch_time failed: %s", e); return 3
+
+    local_ms = int(_t.time() * 1000)
+    diff_ms = srv_ms - local_ms
+    log.info("venue=%s local_ms=%d server_ms=%d diff_ms=%+d",
+             venue, local_ms, srv_ms, diff_ms)
+
+    if abs(diff_ms) > 1000:
+        log.warning(
+            "CLOCK SKEW %+d ms. ccxt will now auto-correct via "
+            "adjustForTimeDifference, but any independent signer "
+            "(curl, custom code, other process) WILL get -1021.",
+            diff_ms,
+        )
+        # Record diff so fetch_* can offset.
+        Path("data/clock_skew_ms").write_text(str(diff_ms))
+        return 0  # not fatal, just noisy — ccxt can compensate
+    log.info("clock ok, |diff| <= 1000ms")
+    return 0
+
+
+def monitor_loop() -> None:
+    """Optional: refresh skew file every hour (used by systemd, not by default)."""
+    while True:
+        try:
+            check_clock()
+        except Exception:  # noqa: BLE001
+            log.exception("clock check failed")
+        import time as _t
+        _t.sleep(3600)
 
 
 if __name__ == "__main__":
