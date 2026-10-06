@@ -7,6 +7,7 @@ import datetime as dt
 import json
 import os
 import sqlite3
+import time
 import sys
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -38,26 +39,47 @@ class Metrics:
     incident_count_24h: int = 0
     extra: dict = field(default_factory=dict)
 
-def _testnet_reconciled() -> bool:
+def _testnet_reconciled(max_age_h: float = 24.0) -> bool:
+    """Строгая проверка testnet-reconcile.
+
+    Возвращает True ТОЛЬКО если:
+      * env QA_ALLOW_UNVERIFIED=1 (явный локальный bypass), ИЛИ
+      * data/qa_state.json свежий (< max_age_h часов) И содержит
+        reconcile_with_testnet.passed is True (строгое identity, без truthy).
+    Всё остальное — False. Fail-closed: файл отсутствует, устарел,
+    повреждён, или проверка отдала FAIL — перехода нет.
+    """
     if os.getenv("QA_ALLOW_UNVERIFIED") == "1":
         return True
     if not QA_STATE.exists():
+        return False
+    age_h = (time.time() - QA_STATE.stat().st_mtime) / 3600.0
+    if age_h > max_age_h:
         return False
     try:
         obj = json.loads(QA_STATE.read_text())
     except Exception:
         return False
-    stack = [obj]
-    while stack:
-        node = stack.pop()
+
+    def _find(node):
         if isinstance(node, dict):
             if "reconcile_with_testnet" in node:
                 v = node["reconcile_with_testnet"]
-                return bool(v.get("passed", False)) if isinstance(v, dict) else bool(v)
-            stack.extend(node.values())
+                if isinstance(v, dict):
+                    return v.get("passed") is True
+                return v is True
+            for val in node.values():
+                r = _find(val)
+                if r is not None:
+                    return r
         elif isinstance(node, list):
-            stack.extend(node)
-    return False
+            for val in node:
+                r = _find(val)
+                if r is not None:
+                    return r
+        return None
+
+    return _find(obj) is True
 
 GATES = {
     (State.BOOTSTRAP, State.PAPER_DRY):
