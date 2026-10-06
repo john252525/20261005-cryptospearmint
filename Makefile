@@ -8,10 +8,11 @@ CONFIG ?= configs/example.yaml
 SYMBOL   ?= BTCUSDT
 INTERVAL ?= 1m
 DAYS     ?= 7
+SECONDS  ?= 0
 
 LIVE_CONFIRM ?=
 
-.PHONY: help setup lint fmt type test fetch-crypto backtest paper live-dev live-prod clean
+.PHONY: help setup lint fmt type test fetch-crypto backtest paper-smoke paper live-dev live-prod clean
 
 help: ## список целей
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -39,9 +40,11 @@ fetch-crypto: ## Binance public REST -> data/bars/ (SYMBOL= INTERVAL= DAYS=)
 backtest: ## SMA(fast/slow) pandas engine
 	$(PYTHON) -m src.research.backtest_sma --config $(CONFIG)
 
-paper: ## paper runner: Binance testnet WS -> journal/
-	$(PYTHON) -m src.execution.paper_runner --config $(CONFIG)
+paper: ## paper runner: Binance testnet WS -> journal/ (SECONDS=0 -> бесконечно)
+	$(PYTHON) -m src.execution.paper_runner --config $(CONFIG) --seconds $(SECONDS)
 
+paper-smoke: ## paper runner 15 секунд (проверка WS соединения)
+	$(PYTHON) -m src.execution.paper_runner --config $(CONFIG) --seconds 15
 live-dev: ## stub: paper окружение под live-конфигом
 	@echo "[live-dev] stub: paper_runner с live-настройками"
 	APP_ENV=paper $(PYTHON) -m src.execution.paper_runner --config $(CONFIG)

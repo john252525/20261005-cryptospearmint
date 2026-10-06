@@ -1,4 +1,4 @@
-"""Binance testnet WS -> journal/paper-<date>.jsonl. Ордера не отправляются."""
+"""Binance testnet WS -> journal/paper-<date>.jsonl. Ключи не нужны, ордера не отправляются."""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +8,7 @@ import json
 import os
 import signal
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -21,37 +22,66 @@ from src.config import load_config  # noqa: E402
 from src.journal.log_trade import log_event  # noqa: E402
 
 WS_BASE = "wss://stream.testnet.binance.vision/ws"
-STOP = asyncio.Event()
+RECV_TIMEOUT_S = 5.0
+
+_stop = asyncio.Event()
+_stopped_printed = False
 
 
 def _on_signal(signum: int, _frame) -> None:
-    # signal handler: только os.write + флаг, никакого loguru/print
+    """Async-signal-safe: только os.write + флаг, идемпотентно."""
+    global _stopped_printed
     with contextlib.suppress(Exception):
-        os.write(2, f"\n[paper] signal {signum}, stopping\n".encode())
-    STOP.set()
+        if not _stopped_printed:
+            os.write(2, f"\n[paper] signal {signum}, stopping\n".encode())
+            _stopped_printed = True
+    _stop.set()
 
 
-async def stream(symbol: str) -> None:
+async def stream(symbol: str, *, seconds: float = 0.0) -> None:
     url = f"{WS_BASE}/{symbol.lower()}@aggTrade"
     logger.info("connecting to {}", url)
+    started = time.monotonic()
+    ticks = 0
+
     async with websockets.connect(url, ping_interval=20, ping_timeout=20) as ws:
         log_event("ws_connected", mode="paper", symbol=symbol, url=url)
-        while not STOP.is_set():
-            try:
-                raw = await asyncio.wait_for(ws.recv(), timeout=60.0)
-            except TimeoutError:
-                logger.debug("no messages in 60s")
-                continue
-            data = json.loads(raw)
-            log_event("trade_tick", mode="paper", symbol=data.get("s", symbol),
-                      price=float(data.get("p", 0.0)), qty=float(data.get("q", 0.0)),
-                      trade_time_ms=int(data.get("T", 0)))
+        logger.info("connected to {}", url)
+
+        async def _auto_stop() -> None:
+            if seconds > 0:
+                await asyncio.sleep(seconds)
+                _stop.set()
+
+        stopper = asyncio.create_task(_auto_stop()) if seconds > 0 else None
+
+        try:
+            while not _stop.is_set():
+                if seconds > 0 and (time.monotonic() - started) >= seconds:
+                    break
+                try:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=RECV_TIMEOUT_S)
+                except TimeoutError:
+                    continue
+                data = json.loads(raw)
+                ticks += 1
+                log_event("trade_tick", mode="paper", symbol=data.get("s", symbol),
+                          price=float(data.get("p", 0.0)), qty=float(data.get("q", 0.0)),
+                          trade_time_ms=int(data.get("T", 0)))
+        finally:
+            if stopper is not None:
+                stopper.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await stopper
+
+    logger.info("disconnected | ticks={} elapsed={:.1f}s", ticks, time.monotonic() - started)
 
 
-async def run(cfg) -> int:
-    logger.info("paper runner | symbol={}", cfg.crypto.symbol)
+async def run(cfg, *, seconds: float) -> int:
+    logger.info("paper runner | symbol={} seconds={} (0=inf)",
+                cfg.crypto.symbol, seconds)
     try:
-        await stream(cfg.crypto.symbol)
+        await stream(cfg.crypto.symbol, seconds=seconds)
     except Exception as e:
         logger.exception("paper runner failed: {}", e)
         return 1
@@ -62,14 +92,20 @@ async def run(cfg) -> int:
 def main() -> int:
     signal.signal(signal.SIGTERM, _on_signal)
     signal.signal(signal.SIGINT, _on_signal)
+
     p = argparse.ArgumentParser()
     p.add_argument("--config", default="configs/example.yaml")
+    p.add_argument("--seconds", type=float, default=0.0,
+                   help="остановиться после N секунд (0 = бесконечно)")
     a = p.parse_args()
+
     cfg = load_config(REPO_ROOT / a.config)
     log_event("paper_start", mode="paper", symbol=cfg.crypto.symbol,
-              started_at=datetime.now(UTC).isoformat(timespec="seconds"))
+              started_at=datetime.now(UTC).isoformat(timespec="seconds"),
+              seconds=a.seconds or None)
+
     try:
-        return asyncio.run(run(cfg))
+        return asyncio.run(run(cfg, seconds=a.seconds))
     except KeyboardInterrupt:
         return 0
 
