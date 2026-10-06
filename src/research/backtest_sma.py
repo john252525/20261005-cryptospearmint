@@ -12,10 +12,9 @@ import argparse
 import json
 import math
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import polars as pl
 import yaml
@@ -67,7 +66,9 @@ def simulate(close: pd.Series, entries: pd.Series, exits: pd.Series,
     entry_px = 0.0
     entry_ts = None
 
-    for ts, price, is_e, is_x in zip(close.index, close.values, entries.values, exits.values):
+    for ts, price, is_e, is_x in zip(close.index, close.values,
+                                      entries.values, exits.values,
+                                      strict=False):
         px = float(price)
         if bool(is_e) and not in_pos:
             fill = px * (1.0 + fees)
@@ -125,7 +126,7 @@ def simulate(close: pd.Series, entries: pd.Series, exits: pd.Series,
 
     stats = {
         "engine": "pandas-v1",
-        "bars": int(len(close)),
+        "bars": len(close),
         "final_equity": round(final, 2),
         "Total Return [%]": round(total_return, 4),
         "Buy and Hold [%]": round(bh_return, 4),
@@ -149,7 +150,7 @@ def run(cfg) -> Path:
                       fees=cfg.backtest.fees)
     stats = result["stats"]
 
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = REPO_ROOT / "backtest" / stamp
     out.mkdir(parents=True, exist_ok=True)
 

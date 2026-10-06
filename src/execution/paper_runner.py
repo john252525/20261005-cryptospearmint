@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
 import os
 import signal
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import websockets
@@ -24,10 +25,9 @@ STOP = asyncio.Event()
 
 
 def _on_signal(signum: int, _frame) -> None:
-    try:
+    # signal handler: только os.write + флаг, никакого loguru/print
+    with contextlib.suppress(Exception):
         os.write(2, f"\n[paper] signal {signum}, stopping\n".encode())
-    except Exception:
-        pass
     STOP.set()
 
 
@@ -39,7 +39,7 @@ async def stream(symbol: str) -> None:
         while not STOP.is_set():
             try:
                 raw = await asyncio.wait_for(ws.recv(), timeout=60.0)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 logger.debug("no messages in 60s")
                 continue
             data = json.loads(raw)
@@ -67,7 +67,7 @@ def main() -> int:
     a = p.parse_args()
     cfg = load_config(REPO_ROOT / a.config)
     log_event("paper_start", mode="paper", symbol=cfg.crypto.symbol,
-              started_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+              started_at=datetime.now(UTC).isoformat(timespec="seconds"))
     try:
         return asyncio.run(run(cfg))
     except KeyboardInterrupt:

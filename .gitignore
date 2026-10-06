@@ -13,11 +13,11 @@ build/
 *.pq
 *.feather
 
-# runtime-каталоги в корне репо (НЕ внутри src/)
+# runtime-каталоги в корне репо
 /data/
 /backtest/
 /journal/
-/notebooks/
+
 /risk/KILL_SWITCH
 
 .pytest_cache/
