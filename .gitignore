@@ -12,12 +12,13 @@ build/
 *.parquet
 *.pq
 *.feather
-data/
-backtest/
-journal/
-research/
-execution/
-risk/KILL_SWITCH
+
+# runtime-каталоги в корне репо (НЕ внутри src/)
+/data/
+/backtest/
+/journal/
+/notebooks/
+/risk/KILL_SWITCH
 
 .pytest_cache/
 .ruff_cache/
