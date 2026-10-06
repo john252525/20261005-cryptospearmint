@@ -46,13 +46,32 @@ def load_bars(symbol: str, interval: str) -> pd.Series:
 
 def load_funding(symbol: str, start: str, end: str) -> pd.Series:
     cache = REPO_ROOT / "data" / "lake" / f"{symbol.upper()}_funding.parquet"
+    need_start = pd.Timestamp(start, tz="UTC")
+    need_end   = pd.Timestamp(end, tz="UTC")
+
+    df = None
     if cache.exists():
-        df = pl.read_parquet(cache)
-        logger.info("funding: cached {} rows from {}", df.height, cache)
-    else:
+        try:
+            cached = pl.read_parquet(cache)
+            cs = pd.Timestamp(cached["ts"].min())
+            ce = pd.Timestamp(cached["ts"].max())
+            cs = cs.tz_localize("UTC") if cs.tz is None else cs.tz_convert("UTC")
+            ce = ce.tz_localize("UTC") if ce.tz is None else ce.tz_convert("UTC")
+            if cs <= need_start and ce >= need_end - pd.Timedelta(days=2):
+                df = cached
+                logger.info("funding: cache covers {}..{} ({} rows)",
+                            cs.date(), ce.date(), cached.height)
+            else:
+                logger.info("funding: cache {}..{} does not cover {}..{} — refetching",
+                            cs.date(), ce.date(), need_start.date(), need_end.date())
+        except Exception as e:
+            logger.warning("funding: cache unreadable ({}), refetching", e)
+
+    if df is None:
         df = fetch_funding(symbol, start, end)
         write_lake(df, cache)
         logger.info("funding: fetched {} rows -> {}", df.height, cache)
+
     ts = _utc_index(df["ts"].to_pandas())
     return pd.Series(df["funding_rate"].to_numpy(), index=ts, name="funding_rate")
 
