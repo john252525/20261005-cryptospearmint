@@ -63,8 +63,12 @@ def simulate(close: pd.Series, funding: pd.Series,
              deploy_ratio: float) -> dict:
     tz = close.index.tz
     def _align(s: pd.Series, fill=False, method=None) -> pd.Series:
-        idx = s.index.tz_localize(tz) if (s.index.tz is None and tz is not None) \
-              else (s.index.tz_convert(tz) if (s.index.tz is not None and tz is not None) else s.index)
+        if s.index.tz is None and tz is not None:
+            idx = s.index.tz_localize(tz)
+        elif s.index.tz is not None and tz is not None:
+            idx = s.index.tz_convert(tz)
+        else:
+            idx = s.index
         s2 = s.copy()
         s2.index = idx
         if method:
@@ -106,6 +110,7 @@ def simulate(close: pd.Series, funding: pd.Series,
                     "notional": round(abs(perp_qty) * entry_px, 2),
                     "pnl_usd": round(trade_pnl, 4),
                     "ret_pct": round(trade_pnl / entry_cash * 100.0, 4),
+                    "forced_exit": False,
                 })
                 in_pos = False
                 spot_qty = perp_qty = 0.0
@@ -119,6 +124,23 @@ def simulate(close: pd.Series, funding: pd.Series,
                 cash -= notional * (spot_fee + perp_fee)
                 in_pos = True
                 entry_ts, entry_px = ts, px
+
+        # forced close на последнем баре, чтобы Trades/ret_reflect всю позицию
+        if in_pos and i == len(close) - 1:
+            closed_px = px
+            cash -= abs(perp_qty) * closed_px * (spot_fee + perp_fee)
+            cash += (spot_qty + perp_qty) * closed_px
+            trade_pnl = cash - entry_cash
+            trades.append({
+                "entry_ts": str(entry_ts), "exit_ts": str(ts),
+                "entry_px": round(entry_px, 6), "exit_px": round(closed_px, 6),
+                "notional": round(abs(perp_qty) * entry_px, 2),
+                "pnl_usd": round(trade_pnl, 4),
+                "ret_pct": round(trade_pnl / entry_cash * 100.0, 4),
+                "forced_exit": True,
+            })
+            in_pos = False
+            spot_qty = perp_qty = 0.0
 
         equity[i] = cash + (spot_qty + perp_qty) * px
 
