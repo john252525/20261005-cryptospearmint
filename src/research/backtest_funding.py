@@ -192,20 +192,19 @@ def simulate(close: pd.Series, funding: pd.Series,
             "trades": trades, "funding": funding_rows}
 
 
-def run(cfg_path: Path) -> Path:
-    cfg = yaml.safe_load(Path(cfg_path).read_text())
+def _run_one(symbol: str, cfg: dict, init_cash: float) -> dict:
     d = cfg["data"]
-    symbol = d["symbols"][0].upper()
-    interval = d.get("interval", "1m")
-    start, end = d["start"], d["end"]
     p = cfg["strategy"]["params"]
     b = cfg["backtest"]
+    interval = d.get("interval", "1m")
+    start, end = d["start"], d["end"]
 
     close = load_bars(symbol, interval)
     close = close.loc[(close.index >= pd.Timestamp(start, tz="UTC"))
                       & (close.index <= pd.Timestamp(end, tz="UTC"))]
     if close.empty:
-        raise SystemExit(f"no bars in [{start}, {end}] for {symbol}_{interval}")
+        logger.warning("{}: no bars in [{}, {}] — skipping", symbol, start, end)
+        return {}
 
     funding = load_funding(symbol, start, end)
     entries, exits = funding_carry_signals(
@@ -215,28 +214,100 @@ def run(cfg_path: Path) -> Path:
         exit_thr=float(p["exit_thr"]),
         stat=p.get("stat", "median"),
     )
-    logger.info("signals: {} entries, {} exits", int(entries.sum()), int(exits.sum()))
+    logger.info("{}: signals {} entries / {} exits", symbol,
+                int(entries.sum()), int(exits.sum()))
 
     res = simulate(close, funding, entries, exits,
-                   init_cash=b["init_cash"], spot_fee=b["spot_fee"],
+                   init_cash=init_cash, spot_fee=b["spot_fee"],
                    perp_fee=b["perp_fee"], deploy_ratio=b["deploy_ratio"])
+    for tr in res["trades"]:
+        tr["symbol"] = symbol
+    res["symbol"] = symbol
+    return res
+
+
+def run(cfg_path: Path) -> Path:
+    cfg = yaml.safe_load(Path(cfg_path).read_text())
+    symbols = [s.upper() for s in cfg["data"]["symbols"]]
+    init_total = float(cfg["backtest"]["init_cash"])
+    per_sym = init_total / len(symbols)
+
+    per_symbol = {}
+    for sym in symbols:
+        r = _run_one(sym, cfg, per_sym)
+        if r:
+            per_symbol[sym] = r
+
+    if not per_symbol:
+        raise SystemExit("no symbols produced result")
+
+    # combined equity: union-of-indexes, forward-fill each, sum row-wise
+    union: pd.DatetimeIndex = pd.DatetimeIndex([])
+    for r in per_symbol.values():
+        union = union.union(r["equity"].index)
+    equity_cols = [
+        r["equity"].reindex(union).ffill().fillna(per_sym)
+        for r in per_symbol.values()
+    ]
+    combined: pd.Series = pd.concat(equity_cols, axis=1).sum(axis=1)
+    combined.name = "equity"
+
+    dd = (combined / combined.cummax() - 1.0) * 100.0
+    daily = combined.resample("1D").last().dropna()
+    dret = daily.pct_change().dropna()
+    sharpe = (float(math.sqrt(365.0) * dret.mean() / dret.std())
+              if dret.std() > 0 else 0.0)
+
+    all_trades = [t for r in per_symbol.values() for t in r["trades"]]
+    all_funding = [f for r in per_symbol.values() for f in r["funding"]]
+    wins = sum(1 for t in all_trades if t["pnl_usd"] > 0)
+    n = len(all_trades)
+    funding_total = sum(f["amount_usd"] for f in all_funding)
+
+    stats = {
+        "engine": "funding-carry-pandas-v1-portfolio",
+        "symbols": symbols,
+        "init_cash": round(init_total, 2),
+        "final_equity": round(float(combined.iloc[-1]), 2),
+        "Total Return [%]": round((float(combined.iloc[-1]) / init_total - 1.0) * 100.0, 4),
+        "Max Drawdown [%]": round(float(dd.min()), 4),
+        "Sharpe Ratio": round(sharpe, 4),
+        "Trades": n,
+        "Wins": wins,
+        "Win Rate [%]": round((wins / n * 100.0) if n else 0.0, 2),
+        "Funding Income [USDT]": round(funding_total, 2),
+        "Funding Events": len(all_funding),
+        "per_symbol": {
+            sym: {
+                "final_equity": r["stats"]["final_equity"],
+                "Total Return [%]": r["stats"]["Total Return [%]"],
+                "Funding Income [USDT]": r["stats"]["Funding Income [USDT]"],
+                "Trades": r["stats"]["Trades"],
+            } for sym, r in per_symbol.items()
+        },
+    }
 
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     out = REPO_ROOT / "backtest_funding" / stamp
     out.mkdir(parents=True, exist_ok=True)
-    (out / "stats.json").write_text(json.dumps(res["stats"], indent=2), encoding="utf-8")
+    (out / "stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
     (out / "config.yaml").write_text(Path(cfg_path).read_text(), encoding="utf-8")
-    res["equity"].to_csv(out / "equity.csv")
-    res["drawdown"].to_csv(out / "drawdown.csv")
-    if res["trades"]:
-        pd.DataFrame(res["trades"]).to_csv(out / "trades.csv", index=False)
-    if res["funding"]:
-        pd.DataFrame(res["funding"]).to_csv(out / "funding.csv", index=False)
+    combined.to_csv(out / "equity.csv")
+    dd.to_csv(out / "drawdown.csv")
+    if all_trades:
+        pd.DataFrame(all_trades).to_csv(out / "trades.csv", index=False)
+    if all_funding:
+        pd.DataFrame(all_funding).to_csv(out / "funding.csv", index=False)
 
-    s = res["stats"]
-    logger.info("trades={} ret={:.2f}% dd={:.2f}% sharpe={:.2f} funding={:.2f}",
-                s["Trades"], s["Total Return [%]"], s["Max Drawdown [%]"],
-                s["Sharpe Ratio"], s["Funding Income [USDT]"])
+    logger.info("portfolio: ret={:.2f}% dd={:.2f}% sharpe={:.2f} "
+                "trades={} funding={:.2f}",
+                stats["Total Return [%]"], stats["Max Drawdown [%]"],
+                stats["Sharpe Ratio"], stats["Trades"],
+                stats["Funding Income [USDT]"])
+    for sym, st in stats["per_symbol"].items():
+        logger.info("  {:<10s} ret={:>7.3f}%  funding={:>8.2f}  trades={}",
+                    sym, st["Total Return [%]"],
+                    st["Funding Income [USDT]"], st["Trades"])
     logger.info("artifacts -> {}", out)
     return out
 
