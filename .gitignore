@@ -38,3 +38,5 @@ data/qa_state.json
 .fc.pid
 .exporter.pid
 *.bak.*
+/backtest_funding/
+.qa_hourly.pid
