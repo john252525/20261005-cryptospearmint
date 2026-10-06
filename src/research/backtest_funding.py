@@ -134,6 +134,7 @@ def simulate(close: pd.Series, funding: pd.Series,
                 })
                 in_pos = False
                 spot_qty = perp_qty = 0.0
+                last_exit_i = i
 
         if (not in_pos) and bool(e_on.iat[i]) and (i - last_exit_i) >= cooldown_bars:
             notional = cash * deploy_ratio / 2.0
@@ -161,6 +162,7 @@ def simulate(close: pd.Series, funding: pd.Series,
             })
             in_pos = False
             spot_qty = perp_qty = 0.0
+            last_exit_i = i
 
         equity[i] = cash + (spot_qty + perp_qty) * px
 
