@@ -1,0 +1,66 @@
+[project]
+name = "trading-desk"
+version = "0.1.0"
+description = "Trading desk monorepo: dev -> paper -> small live"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "numpy>=1.26,<2.3",
+    "pandas>=2.2,<3",
+    "polars>=1.0",
+    "scipy>=1.12",
+    "pyarrow>=16.0",
+    "duckdb>=1.0",
+    "vectorbt>=0.26",
+    "nautilus_trader>=1.190",
+    "websockets>=12.0",
+    "httpx>=0.27",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+    "pyyaml>=6.0",
+    "loguru>=0.7",
+    "python-dotenv>=1.0",
+    "prometheus-client>=0.20",
+    "python-telegram-bot>=21.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "black>=24.4",
+    "mypy>=1.10",
+    "ipykernel>=6.29",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "data", "backtest", "journal", "notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["B008", "RUF001", "RUF002", "RUF003"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+ignore_missing_imports = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers --strict-config"
+asyncio_mode = "strict"

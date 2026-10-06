@@ -1,0 +1,19 @@
+[Unit]
+Description=trading-desk paper runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trader
+WorkingDirectory=/opt/trading-desk
+EnvironmentFile=/opt/trading-desk/.env
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/local/bin/uv run python -m src.execution.paper_runner --config configs/example.yaml
+Restart=on-failure
+RestartSec=60
+StandardOutput=append:/var/log/trading-desk/paper.log
+StandardError=append:/var/log/trading-desk/paper.log
+
+[Install]
+WantedBy=multi-user.target

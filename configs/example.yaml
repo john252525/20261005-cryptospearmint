@@ -1,0 +1,18 @@
+crypto:
+  symbol: BTCUSDT
+  interval: 1m
+  days: 7
+
+data:
+  bars_dir: data/bars
+
+backtest:
+  fast: 20
+  slow: 50
+  init_cash: 100000
+  fees: 0.001
+
+risk:
+  max_order_notional: 1000
+  max_position_notional: 10000
+  max_open_positions: 5
