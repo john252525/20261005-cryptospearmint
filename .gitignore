@@ -26,3 +26,5 @@ build/
 .coverage
 htmlcov/
 .ipynb_checkpoints/
+data/kill_events.jsonl
+data/qa_state.json

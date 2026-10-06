@@ -12,7 +12,7 @@ SECONDS  ?= 0
 
 LIVE_CONFIRM ?=
 
-.PHONY: help setup lint fmt type test fetch-crypto backtest paper-smoke paper live-dev live-prod clean
+.PHONY: help setup lint fmt type test fetch-crypto backtest paper-smoke paper live-dev live-prod clean qa-check qa-once qa-hourly qa-report
 
 help: ## список целей
 	@grep -hE '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -56,3 +56,32 @@ live-prod: ## stub: требует LIVE_CONFIRM=YES-I-AM-LIVE
 clean: ## кэши и артефакты (data/, journal/ НЕ трогает)
 	rm -rf .pytest_cache .ruff_cache .mypy_cache dist build .coverage htmlcov
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
+
+
+.PHONY: qa-check qa-once qa-hourly qa-report
+qa-check: ## sanity: qa sources present (silent on success)
+	@test -f qa/honesty_checks.py       || { echo "missing qa/honesty_checks.py"       >&2; exit 1; }
+	@test -f qa/hourly_reconcile.py     || { echo "missing qa/hourly_reconcile.py"     >&2; exit 1; }
+	@test -f scripts/qa_daily_report.py || { echo "missing scripts/qa_daily_report.py" >&2; exit 1; }
+
+qa-once: qa-check ## run all 12 honesty checks on data/journal.jsonl
+	@$(PYTHON) -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db
+
+qa-hourly: qa-check ## long-running hourly reconciler (run in separate terminal)
+	$(PYTHON) -m qa.hourly_reconcile
+
+.PHONY: qa-hourly-once qa-hourly-preflight
+qa-hourly-once: qa-check ## reconcile once, then exit (CI/smoke)
+	@$(PYTHON) -m qa.hourly_reconcile --once
+
+qa-hourly-preflight: qa-check ## config-only check, no network
+	@$(PYTHON) -m qa.hourly_reconcile --preflight
+qa-hourly-verify: qa-check ## auth-only probe (no DB write)
+	@$(PYTHON) -m qa.hourly_reconcile --verify-credentials
+
+
+qa-report: qa-check ## write docs/reports/qa_YYYYMMDD.md
+	@$(PYTHON) scripts/qa_daily_report.py
+
+qa-once-strict: qa-check ## exit 1 if any check fails (CI gate)
+	@$(PYTHON) -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db
