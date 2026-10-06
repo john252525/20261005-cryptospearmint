@@ -1,0 +1,45 @@
+env: paper
+data:
+  source: binance
+  timeframe: 1d
+  symbols: [BTCUSDT]
+  start: "2022-01-01"
+  end: "2024-12-31"
+strategy:
+  name: sma_cross
+  params: { fast: 20, slow: 50 }
+backtest:
+  init_cash: 100000
+  fees: 0.0004
+  slippage: 0.0002
+  freq: 1D
+risk:
+  max_daily_loss_usd: 500
+  max_position_notional_usd: 5000
+  max_order_notional_usd: 1000
+  max_open_positions: 5
+  kill_switch_enabled: true
+execution:
+  poll_seconds: 5
+  mode: paper
+artifacts_dir: artifacts
+
+walk_forward:
+  train_bars: 365
+  test_bars: 90
+  step_bars: 90
+  metric: sharpe_ann
+  min_trades: 1
+  grids:
+    sma_cross:
+      fast: [10, 20, 30, 50]
+      slow: [50, 100, 150, 200]
+    momentum_roc:
+      lookback: [5, 10, 20, 40, 60]
+      threshold: [0.0, 0.02, 0.05]
+    donchian_breakout:
+      entry_lookback: [10, 20, 40, 60]
+      exit_lookback: [5, 10, 20]
+    mean_reversion_z:
+      lookback: [10, 20, 40]
+      k: [1.5, 2.0, 2.5]

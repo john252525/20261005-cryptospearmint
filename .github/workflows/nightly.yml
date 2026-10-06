@@ -1,0 +1,98 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"          # 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+      BYBIT_API_KEY:      ${{ secrets.BYBIT_API_KEY }}
+      BYBIT_API_SECRET:   ${{ secrets.BYBIT_API_SECRET }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - run: uv sync
+
+      - name: fetch (1m, 7d)
+        run: uv run python -m src.data.fetch_crypto --symbol BTCUSDT --interval 1m --days 7
+
+      - name: data audit
+        run: uv run python scripts/data_audit.py
+
+      - name: backtest
+        run: uv run python -m src.research.backtest_sma --config configs/example.yaml
+
+      - name: QA (soft; --allow-no-creds if secrets empty)
+        run: |
+          if [ -n "$BYBIT_API_KEY" ]; then
+            uv run python -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db
+          else
+            echo "[nightly] no BYBIT creds; running in --allow-no-creds mode"
+            uv run python -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db --allow-no-creds
+          fi
+
+      - name: daily report
+        run: uv run python -m src.pipeline.daily_report
+
+      - name: upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ github.run_number }}
+          path: |
+            backtest/**/*.parquet
+            backtest/**/*.json
+            artifacts/data_audit.json
+            docs/reports/daily_*.md
+            docs/reports/qa_latest.md
+            logs/qa_last.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: publish to nightly-results
+        if: success()
+        run: |
+          set -eux
+          D="$(date -u +%Y%m%d)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin nightly-results || true
+          git checkout -B nightly-results
+          mkdir -p "nightly/${D}"
+          [ -f artifacts/data_audit.json ]             && cp -f artifacts/data_audit.json "nightly/${D}/" || true
+          [ -f "docs/reports/daily_${D}.md" ]          && cp -f "docs/reports/daily_${D}.md" "nightly/${D}/" || true
+          [ -f docs/reports/qa_latest.md ]             && cp -f docs/reports/qa_latest.md "nightly/${D}/" || true
+          find backtest -maxdepth 2 -name '*.parquet' -exec cp -f {} "nightly/${D}/" \; 2>/dev/null || true
+          find backtest -maxdepth 2 -name 'metrics.json' -exec sh -c 'cp -f "$1" "nightly/${D}/$(dirname "$1" | xargs basename)_metrics.json"' _ {} \; 2>/dev/null || true
+          git add "nightly/"
+          if git diff --cached --quiet; then echo "[nightly] no changes"; else
+            git commit -m "nightly ${D} (run ${GITHUB_RUN_NUMBER})"
+            git push origin nightly-results --force
+          fi
+
+      - name: notify fail
+        if: failure()
+        run: |
+          uv run python -c "from src.pipeline.notify import pipeline_fail; pipeline_fail('nightly', 1, '${GITHUB_RUN_ID}')" || true

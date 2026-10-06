@@ -1,0 +1,19 @@
+env: live
+extends: base.yaml
+data:
+  source: binance
+  timeframe: 1m
+  symbols: [BTCUSDT]
+risk:
+  max_daily_loss_usd: 250
+  max_position_notional_usd: 2000
+  max_order_notional_usd: 250
+  max_open_positions: 3
+  kill_switch_enabled: true
+execution:
+  mode: dry_run
+  broker: ibkr
+  poll_seconds: 2
+  confirm_env_var: LIVE_CONFIRM
+  confirm_value: YES-I-AM-LIVE
+artifacts_dir: artifacts

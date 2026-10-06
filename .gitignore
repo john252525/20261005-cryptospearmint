@@ -28,3 +28,13 @@ htmlcov/
 .ipynb_checkpoints/
 data/kill_events.jsonl
 data/qa_state.json
+
+# ── pipeline runtime (не коммитим)
+/artifacts/
+/backups/
+/logs/
+/state/
+.paper.pid
+.fc.pid
+.exporter.pid
+*.bak.*

@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 UV     ?= uv
-PYTHON ?= $(UV) run python
+PYTHON := /root/trading-desk/.venv/bin/python
 CONFIG ?= configs/example.yaml
 
 SYMBOL   ?= BTCUSDT
@@ -66,6 +66,9 @@ qa-check: ## sanity: qa sources present (silent on success)
 
 qa-once: qa-check ## run all 12 honesty checks on data/journal.jsonl
 	@$(PYTHON) -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db
+qa-once-ci: qa-check ## CI variant: exit 0 if only reconcile is unverified
+	@$(PYTHON) -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db --allow-no-creds
+
 
 qa-hourly: qa-check ## long-running hourly reconciler (run in separate terminal)
 	$(PYTHON) -m qa.hourly_reconcile
@@ -78,6 +81,9 @@ qa-hourly-preflight: qa-check ## config-only check, no network
 	@$(PYTHON) -m qa.hourly_reconcile --preflight
 qa-hourly-verify: qa-check ## auth-only probe (no DB write)
 	@$(PYTHON) -m qa.hourly_reconcile --verify-credentials
+qa-hourly-clock: qa-check ## compare local vs venue server time (no auth)
+	@$(PYTHON) -m qa.hourly_reconcile --check-clock
+
 
 
 qa-report: qa-check ## write docs/reports/qa_YYYYMMDD.md
@@ -85,3 +91,38 @@ qa-report: qa-check ## write docs/reports/qa_YYYYMMDD.md
 
 qa-once-strict: qa-check ## exit 1 if any check fails (CI gate)
 	@$(PYTHON) -m qa.honesty_checks --journal data/journal.jsonl --db data/state.db
+
+# ────────────────────────────────────────────────────────────────────────
+#  Pipeline glue v2 (no heredocs; audit delegated to scripts/data_audit.py)
+# ────────────────────────────────────────────────────────────────────────
+.PHONY: check-env data-fetch data-audit research-backtest \
+        strategies-pull pipeline-smoke full-cycle
+
+check-env:
+	@echo "CWD=$(CURDIR)  PY=$(PYTHON)"
+	@$(PYTHON) -V
+	@$(PYTHON) -c "import src, qa, scripts; print('imports ok')"
+
+data-fetch: fetch-crypto
+research-backtest: backtest
+
+data-audit:
+	@$(PYTHON) scripts/data_audit.py
+
+strategies-pull:
+	@if [ -d /opt/trading-desk/strategies ]; then \
+	  cp -n /opt/trading-desk/strategies/*.py strategies/ 2>/dev/null || true; \
+	  echo "strategies: $$(ls strategies/*.py 2>/dev/null | wc -l) file(s)"; \
+	fi
+
+pipeline-smoke: check-env data-audit qa-once-ci daily-report snapshot
+	@echo "[pipeline-smoke] OK"
+
+full-cycle: fetch-crypto data-audit backtest qa-once-ci daily-report
+	@echo "[full-cycle] OK @ $$(date -u +%FT%TZ)"
+
+daily-report:
+	@$(PYTHON) -m src.pipeline.daily_report
+
+snapshot:
+	@$(PYTHON) -m scripts.rollback snapshot

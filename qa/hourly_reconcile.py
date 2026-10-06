@@ -7,7 +7,7 @@ import os
 import sqlite3
 import time
 import urllib.request
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 log = logging.getLogger("qa.reconcile")
@@ -47,7 +47,7 @@ KILL_LOG = os.getenv("QA_KILL_LOG", "data/kill_events.jsonl")
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _telegram(msg: str) -> None:
@@ -63,7 +63,7 @@ def _telegram(msg: str) -> None:
             headers={"Content-Type": "application/json"},
         )
         urllib.request.urlopen(req, timeout=5).read()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error("telegram send failed: %s", e)
 
 
@@ -154,7 +154,7 @@ def fetch_positions_binance_testnet() -> dict[str, float]:
         )
     try:
         ex.enableDemoTrading(True)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         raise ConfigError(f"enableDemoTrading failed: {e}") from e
     out: dict[str, float] = {}
     for p in ex.fetch_positions():
@@ -277,17 +277,19 @@ def _run_forever() -> None:
         except ConfigError:
             log.critical("reconcile config error — exiting, fix env and restart")
             raise
-        except Exception:  # noqa: BLE001 transient: retry next hour
+        except Exception:
             log.exception("reconcile tick failed (transient, will retry)")
         time.sleep(INTERVAL_S)
 
 
 def _preflight() -> None:
-    """Check env + ccxt import. No network. Raises ConfigError on problem."""
-    try:
-        import ccxt  # type: ignore
-    except ModuleNotFoundError as e:
-        raise ConfigError("ccxt not installed: `uv add ccxt`") from e
+    """Env + ccxt-presence check. No network, NO heavy import.
+    Uses importlib.util.find_spec so it does not pay the 25s of
+    importing ccxt just to print its version — that cost is deferred
+    to the actual gates (--check-clock / --verify-credentials / --once)."""
+    import importlib.util
+    if importlib.util.find_spec("ccxt") is None:
+        raise ConfigError("ccxt not installed: `uv add ccxt`")
     venue = os.getenv("QA_VENUE", "binance")
     if venue == "binance":
         _require_secret("BINANCE_API_KEY", "BN_KEY",         expected_len=64)
@@ -297,8 +299,8 @@ def _preflight() -> None:
         _require_secret("BYBIT_API_SECRET", "BYBIT_SECRET",  expected_len=36)
     else:
         raise ConfigError(f"unknown venue: {venue}")
-    log.info("preflight ok: venue=%s ccxt=%s timeout=%dms",
-             venue, ccxt.__version__, CCXT_TIMEOUT_MS)
+    log.info("preflight ok: venue=%s ccxt_module=found timeout=%dms",
+             venue, CCXT_TIMEOUT_MS)
 
 
 def main() -> None:
@@ -351,7 +353,8 @@ def verify_credentials() -> int:
             })
             if hasattr(ex, "enableDemoTrading"):
                 ex.enableDemoTrading(True)
-            probe = lambda: ex.fetch_balance()
+            def probe():
+                return ex.fetch_balance()
         elif venue == "bybit":
             try:
                 import ccxt
@@ -364,7 +367,8 @@ def verify_credentials() -> int:
                 "enableRateLimit": True, "timeout": CCXT_TIMEOUT_MS,
             })
             ex.set_sandbox_mode(True)
-            probe = lambda: ex.fetch_balance()
+            def probe():
+                return ex.fetch_balance()
         else:
             raise ConfigError(f"unknown venue: {venue}")
 
@@ -385,7 +389,7 @@ def verify_credentials() -> int:
         return 0
     except ConfigError as e:
         log.critical("config: %s", e); return 2
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error("auth failed: %s: %s", type(e).__name__, e)
         return 3
 
@@ -409,7 +413,7 @@ def check_clock() -> int:
 
     try:
         srv_ms = ex.fetch_time()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error("fetch_time failed: %s", e); return 3
 
     local_ms = int(_t.time() * 1000)
@@ -436,7 +440,7 @@ def monitor_loop() -> None:
     while True:
         try:
             check_clock()
-        except Exception:  # noqa: BLE001
+        except Exception:
             log.exception("clock check failed")
         import time as _t
         _t.sleep(3600)

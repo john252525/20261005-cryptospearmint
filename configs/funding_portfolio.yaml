@@ -1,0 +1,22 @@
+env: paper
+data:
+  source: binance_futures
+  timeframe: 8h_funding
+  symbols:
+    - LINKUSDT
+    - BTCUSDT
+    - LTCUSDT
+    - DOGEUSDT
+    - ETHUSDT
+  start: "2022-01-01"
+  end: "2025-01-01"
+strategy:
+  name: funding_carry
+  params: { lookback: 42, entry_thr: 0.00007, exit_thr: -0.00003, stat: median }
+backtest:
+  init_cash: 100000
+  spot_fee: 0.0010
+  perp_fee: 0.0005
+  deploy_ratio: 0.9
+  max_basis_bps: 15.0   # не открывать при |basis| > порога (защита от шока)
+artifacts_dir: artifacts

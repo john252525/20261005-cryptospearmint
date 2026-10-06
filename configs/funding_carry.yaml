@@ -1,0 +1,16 @@
+env: paper
+data:
+  source: binance_futures
+  timeframe: 8h_funding
+  symbols: [BTCUSDT]
+  start: "2022-01-01"
+  end: "2025-01-01"
+strategy:
+  name: funding_carry
+  params: { lookback: 21, entry_thr: 0.00005, exit_thr: -0.00003 }
+backtest:
+  init_cash: 100000
+  spot_fee: 0.0010
+  perp_fee: 0.0005
+  deploy_ratio: 0.9
+artifacts_dir: artifacts

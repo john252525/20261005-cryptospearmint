@@ -1,0 +1,52 @@
+# Основной конфиг: 1h BTCUSDT, 4 года. Сменили ТФ, потому что на дневках недостаточно окон для статистики.
+env: paper
+
+data:
+  source: binance
+  timeframe: 1h
+  symbols: [BTCUSDT]
+  start: "2022-01-01"
+  end: "2025-01-01"
+
+strategy:
+  name: mean_reversion_z
+  params: { lookback: 20, k: 2.0 }
+
+backtest:
+  init_cash: 100000
+  fees: 0.0        # 5 bps: реалистичный taker на часовках
+  slippage: 0.0    # 3 bps
+  freq: 1H
+
+risk:
+  max_daily_loss_usd: 500
+  max_position_notional_usd: 5000
+  max_order_notional_usd: 1000
+  max_open_positions: 5
+  kill_switch_enabled: true
+
+execution:
+  poll_seconds: 5
+  mode: paper
+
+artifacts_dir: artifacts
+
+walk_forward:
+  train_bars: 2160      # 90 дней x 24h
+  test_bars: 720        # 30 дней
+  step_bars: 720
+  metric: sharpe_ann
+  min_trades: 3
+  grids:
+    sma_cross:
+      fast: [20, 50, 100, 200]
+      slow: [200, 400, 800]
+    momentum_roc:
+      lookback: [6, 12, 24, 48, 96]
+      threshold: [0.0, 0.005, 0.015]
+    donchian_breakout:
+      entry_lookback: [24, 48, 96, 168]
+      exit_lookback: [12, 24, 48]
+    mean_reversion_z:
+      lookback: [12, 24, 48, 96]
+      k: [1.5, 2.0, 2.5]

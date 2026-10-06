@@ -2,17 +2,15 @@
 """Daily QA honesty report -> docs/reports/qa_YYYYMMDD.md"""
 from __future__ import annotations
 
-import json
 import sqlite3
 import sys
-from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from qa.honesty_checks import run_checks, _load_journal  # noqa: E402
+from qa.honesty_checks import _load_journal, run_checks  # noqa: E402
 
 JOURNAL = ROOT / "data" / "journal.jsonl"
 DB = ROOT / "data" / "state.db"
@@ -97,7 +95,7 @@ def render(checks: dict, metrics: dict, day: str) -> str:
 
 
 def main() -> None:
-    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    day = datetime.now(UTC).strftime("%Y%m%d")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     if not JOURNAL.exists():
         raise SystemExit(f"journal not found: {JOURNAL}")

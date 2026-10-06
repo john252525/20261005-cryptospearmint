@@ -1,15 +1,17 @@
 """Honesty checks for paper-trading journal (funding-carry)."""
 from __future__ import annotations
 
+import itertools
 import json
 import logging
 import os
 import sqlite3
 import urllib.request
 from collections import defaultdict
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 log = logging.getLogger("qa.honesty")
 
@@ -47,7 +49,7 @@ def _parse_ts(s) -> float:
 
 def _load_journal(path: str | Path) -> list[dict]:
     out: list[dict] = []
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for ln, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -140,7 +142,7 @@ def check_funding_cadence(events: list[dict], cfg: dict) -> dict:
     bad, n = [], 0
     for ev in _iter(events, "funding_credit"):
         n += 1
-        dt = datetime.fromtimestamp(_parse_ts(ev["ts"]), tz=timezone.utc)
+        dt = datetime.fromtimestamp(_parse_ts(ev["ts"]), tz=UTC)
         h = dt.hour
         secs_from = min(
             abs(((h - H) % 24) * 3600 + dt.minute * 60 + dt.second)
@@ -179,7 +181,7 @@ def check_ts_monotonic(events: list[dict], cfg: dict) -> dict:
         if prev is not None and ts < prev:
             bad += 1
             log.error("journal non-monotonic at line %d: %s < %s",
-                      i, ev["ts"], datetime.fromtimestamp(prev, tz=timezone.utc).isoformat())
+                      i, ev["ts"], datetime.fromtimestamp(prev, tz=UTC).isoformat())
         prev = ts
     return _res(bad == 0, bad, 0, f"non_monotonic_events={bad}")
 
@@ -230,7 +232,7 @@ def check_funding_reversal_closed(events: list[dict], cfg: dict) -> dict:
     bad = []
     for sym, evs in by_sym.items():
         evs.sort(key=lambda e: _parse_ts(e["ts"]))
-        for a, b in zip(evs, evs[1:]):
+        for a, b in itertools.pairwise(evs):
             if a["funding_rate"] * b["funding_rate"] < 0:
                 t_flip = _parse_ts(b["ts"])
                 if not any(t > t_flip for t in closes.get(sym, [])):
@@ -248,7 +250,7 @@ def check_no_conflicting_orders(events: list[dict], cfg: dict) -> dict:
     bad, detail = 0, []
     for (sym, mkt), ts in by_key.items():
         ts.sort()
-        for a, b in zip(ts, ts[1:]):
+        for a, b in itertools.pairwise(ts):
             if b - a < TH["conflict_window_s"]:
                 bad += 1
                 detail.append({"symbol": sym, "market": mkt, "dt_s": round(b - a, 6)})
@@ -305,7 +307,7 @@ def check_funding_income_sanity(events: list[dict], cfg: dict) -> dict:
     per_day: dict[str, float] = defaultdict(float)
     nav = None
     for ev in _iter(events, "funding_credit"):
-        day = datetime.fromtimestamp(_parse_ts(ev["ts"]), tz=timezone.utc).date().isoformat()
+        day = datetime.fromtimestamp(_parse_ts(ev["ts"]), tz=UTC).date().isoformat()
         per_day[day] += float(ev["amount_usd"])
         nav = float(ev.get("nav_usd", nav or 0.0))
     if not per_day or not nav:
@@ -349,14 +351,14 @@ def _telegram(msg: str) -> None:
             headers={"Content-Type": "application/json"},
         )
         urllib.request.urlopen(req, timeout=5).read()
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         log.error("telegram send failed: %s", e)
 
 
 def _kill_event(level: str, check: str, value: Any, cfg: dict) -> None:
     path = cfg.get("kill_events_path", "data/kill_events.jsonl")
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
+    rec = {"ts": datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
            "level": level, "check": check, "value": value}
     with open(path, "a", encoding="utf-8") as f:
         f.write(json.dumps(rec) + "\n")
@@ -367,7 +369,7 @@ def _update_streak(cfg: dict, results: dict) -> None:
     state_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         state = json.loads(state_path.read_text())
-    except Exception:  # noqa: BLE001
+    except Exception:
         state = {}
     for name, r in results.items():
         if r["passed"]:
@@ -393,7 +395,7 @@ def run_checks(journal_path: str, sqlite_path: str, config: dict | None = None) 
     for name, fn in CHECKS.items():
         try:
             r = fn(events, cfg)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             log.exception("check %s crashed", name)
             r = _res(False, "exception", None, f"crash: {e}")
         results[name] = r
@@ -408,6 +410,23 @@ def run_checks(journal_path: str, sqlite_path: str, config: dict | None = None) 
     return results
 
 
+# Expected when the process simply has no live venue credentials:
+# reconcile_with_testnet is the ONLY allowed fail; any other fail is fatal.
+_NO_CREDS_MARKERS = (
+    "no sqlite/reconcile log",
+    "reconcile_log missing",
+    "no reconcile history",
+    "only dry_run entries",
+)
+
+
+def _is_expected_no_creds_fail(name: str, r: dict) -> bool:
+    if name != "reconcile_with_testnet":
+        return False
+    msg = r.get("message", "")
+    return any(m in msg for m in _NO_CREDS_MARKERS)
+
+
 if __name__ == "__main__":
     import argparse
     import sys
@@ -416,10 +435,30 @@ if __name__ == "__main__":
     ap.add_argument("--db", default="data/state.db")
     ap.add_argument("--venue", default="binance_usdm")
     ap.add_argument("--no-alerts", action="store_true")
+    ap.add_argument("--allow-no-creds", action="store_true",
+                    help="exit 0 if reconcile_with_testnet is the ONLY fail "
+                         "and its message says 'no creds / no reconcile log / dry_run'")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s %(message)s")
     res = run_checks(a.journal, a.db,
                      {"venue": a.venue, "emit_alerts": not a.no_alerts})
     print(json.dumps(res, indent=2))
-    sys.exit(0 if all(r["passed"] for r in res.values()) else 1)
+
+    hard = [k for k, r in res.items()
+            if not r["passed"] and not _is_expected_no_creds_fail(k, r)]
+    soft = [k for k, r in res.items()
+            if not r["passed"] and _is_expected_no_creds_fail(k, r)]
+
+    if hard:
+        print(f"\nFATAL: {len(hard)} meaningful check(s) failed: {hard}", file=sys.stderr)
+        sys.exit(1)
+    if soft:
+        if a.allow_no_creds:
+            print(f"\nWARN: no vendor credentials; {soft} unverified (accepted).",
+                  file=sys.stderr)
+            sys.exit(0)
+        print(f"\nFAIL-CLOSED: {soft} unverified, no credentials supplied.",
+              file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
