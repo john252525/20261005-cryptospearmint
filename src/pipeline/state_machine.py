@@ -7,8 +7,8 @@ import datetime as dt
 import json
 import os
 import sqlite3
-import time
 import sys
+import time
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
