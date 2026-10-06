@@ -253,7 +253,7 @@ def run(cfg_path: Path) -> Path:
         s = r["equity"].reindex(union).ffill().fillna(per_sym)
         combined = combined + s
     combined.name = "equity"
-    assert isinstance(combined, pd.Series), type(combined)
+    combined.index = pd.DatetimeIndex(combined.index)
 
     dd = (combined / combined.cummax() - 1.0) * 100.0
     daily = combined.resample("1D").last().dropna()
