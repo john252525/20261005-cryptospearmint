@@ -27,6 +27,6 @@ jobs:
         run: |
           uv run pytest -x -q \
             --cov=src --cov=qa --cov=scripts \
-            --cov-fail-under=19   # TODO: raise to 80 as src/pipeline tests land \
+            --cov-fail-under=22   # TODO: raise to 80 as src/pipeline tests land \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml
