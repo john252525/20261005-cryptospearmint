@@ -40,14 +40,21 @@ class Metrics:
     extra: dict = field(default_factory=dict)
 
 def _testnet_reconciled(max_age_h: float = 24.0) -> bool:
-    """Строгая проверка testnet-reconcile.
+    """Testnet reconcile — строгий fail-closed gate.
 
-    Возвращает True ТОЛЬКО если:
-      * env QA_ALLOW_UNVERIFIED=1 (явный локальный bypass), ИЛИ
-      * data/qa_state.json свежий (< max_age_h часов) И содержит
-        reconcile_with_testnet.passed is True (строгое identity, без truthy).
-    Всё остальное — False. Fail-closed: файл отсутствует, устарел,
-    повреждён, или проверка отдала FAIL — перехода нет.
+    Контракт qa.honesty_checks._update_streak:
+      data/qa_state.json — счётчик подряд-идущих FAIL'ов. Ключ есть →
+      этот чек провалился. PASS → ключ удалён. alert_streak достигнут →
+      значение сбрасывается в 0 (тоже не pass). Файл перезаписывается
+      на каждом run_checks (кроме emit_alerts=False).
+
+    Разрешаем переход ТОЛЬКО когда:
+      * QA_ALLOW_UNVERIFIED=1 (единственный явный bypass), либо
+      * файл существует, свежий (< max_age_h) и в нём НЕТ ключа
+        reconcile_with_testnet (значит последний прогон зачёлся как PASS).
+
+    Всё остальное — отсутствие файла, старьё, невалидный JSON,
+    счётчик со значением >= 0 — False.
     """
     if os.getenv("QA_ALLOW_UNVERIFIED") == "1":
         return True
@@ -57,29 +64,13 @@ def _testnet_reconciled(max_age_h: float = 24.0) -> bool:
     if age_h > max_age_h:
         return False
     try:
-        obj = json.loads(QA_STATE.read_text())
+        state = json.loads(QA_STATE.read_text())
     except Exception:
         return False
+    if not isinstance(state, dict):
+        return False
+    return "reconcile_with_testnet" not in state
 
-    def _find(node):
-        if isinstance(node, dict):
-            if "reconcile_with_testnet" in node:
-                v = node["reconcile_with_testnet"]
-                if isinstance(v, dict):
-                    return v.get("passed") is True
-                return v is True
-            for val in node.values():
-                r = _find(val)
-                if r is not None:
-                    return r
-        elif isinstance(node, list):
-            for val in node:
-                r = _find(val)
-                if r is not None:
-                    return r
-        return None
-
-    return _find(obj) is True
 
 GATES = {
     (State.BOOTSTRAP, State.PAPER_DRY):
