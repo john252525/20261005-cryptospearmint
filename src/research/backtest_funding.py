@@ -79,7 +79,7 @@ def load_funding(symbol: str, start: str, end: str) -> pd.Series:
 def simulate(close: pd.Series, funding: pd.Series,
              entries: pd.Series, exits: pd.Series, *,
              init_cash: float, spot_fee: float, perp_fee: float,
-             deploy_ratio: float) -> dict:
+             deploy_ratio: float, cooldown_bars: int = 0) -> dict:
     tz = close.index.tz
     def _align(s: pd.Series, fill=False, method=None) -> pd.Series:
         if s.index.tz is None and tz is not None:
@@ -103,6 +103,7 @@ def simulate(close: pd.Series, funding: pd.Series,
     perp_qty = 0.0
     in_pos = False
     entry_ts, entry_px, entry_cash = None, 0.0, cash
+    last_exit_i = -10**9
 
     trades: list[dict] = []
     funding_rows: list[dict] = []
@@ -134,7 +135,7 @@ def simulate(close: pd.Series, funding: pd.Series,
                 in_pos = False
                 spot_qty = perp_qty = 0.0
 
-        if (not in_pos) and bool(e_on.iat[i]):
+        if (not in_pos) and bool(e_on.iat[i]) and (i - last_exit_i) >= cooldown_bars:
             notional = cash * deploy_ratio / 2.0
             if notional > 1.0:
                 entry_cash = cash
@@ -219,7 +220,8 @@ def _run_one(symbol: str, cfg: dict, init_cash: float) -> dict:
 
     res = simulate(close, funding, entries, exits,
                    init_cash=init_cash, spot_fee=b["spot_fee"],
-                   perp_fee=b["perp_fee"], deploy_ratio=b["deploy_ratio"])
+                   perp_fee=b["perp_fee"], deploy_ratio=b["deploy_ratio"],
+                   cooldown_bars=int(b.get("cooldown_bars", 0)))
     for tr in res["trades"]:
         tr["symbol"] = symbol
     res["symbol"] = symbol
@@ -241,16 +243,17 @@ def run(cfg_path: Path) -> Path:
     if not per_symbol:
         raise SystemExit("no symbols produced result")
 
-    # combined equity: union-of-indexes, forward-fill each, sum row-wise
-    union: pd.DatetimeIndex = pd.DatetimeIndex([])
+    # combined equity: union-of-indexes; sum symbol-by-symbol (Series + Series)
+    union = pd.DatetimeIndex([])
     for r in per_symbol.values():
-        union = union.union(r["equity"].index)
-    equity_cols = [
-        r["equity"].reindex(union).ffill().fillna(per_sym)
-        for r in per_symbol.values()
-    ]
-    combined: pd.Series = pd.concat(equity_cols, axis=1).sum(axis=1)
+        union = union.union(pd.DatetimeIndex(r["equity"].index))
+
+    combined = pd.Series(0.0, index=union, dtype=float, name="equity")
+    for r in per_symbol.values():
+        s = r["equity"].reindex(union).ffill().fillna(per_sym)
+        combined = combined + s
     combined.name = "equity"
+    assert isinstance(combined, pd.Series), type(combined)
 
     dd = (combined / combined.cummax() - 1.0) * 100.0
     daily = combined.resample("1D").last().dropna()
