@@ -1,10 +1,10 @@
 """FSM: gate-функции + transition, без сети, на tmp_path."""
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import time
-from pathlib import Path
 
 import pytest
 
@@ -14,7 +14,6 @@ def sm(tmp_path, monkeypatch):
     """Каждая тест-каприза получает свой state/ и data/qa_state.json."""
     monkeypatch.setenv("QA_ALLOW_UNVERIFIED", "0")
     os.environ.pop("QA_ALLOW_UNVERIFIED", None)
-    import importlib
     import src.pipeline.state_machine as mod
     monkeypatch.setattr(mod, "DB",       tmp_path / "state" / "pipeline.sqlite")
     monkeypatch.setattr(mod, "QA_STATE", tmp_path / "data" / "qa_state.json")
