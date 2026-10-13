@@ -37,7 +37,8 @@ def _one(path: Path) -> dict:
     ts_col = "ts" if "ts" in df.columns else df.columns[0]
     ts = _ts(df[ts_col])
     if ts.isna().all():
-        r = dict(empty); r.update(rows=len(df), ts_col=ts_col,
+        r = dict(empty)
+        r.update(rows=len(df), ts_col=ts_col,
                                   note="ts unparsed")
         return r
 
