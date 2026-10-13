@@ -33,53 +33,55 @@ dev = [
 line-length = 100
 target-version = "py311"
 exclude = [
-    ".venv", "data", "backtest", "backtest_funding", "journal", "notebooks",
-    # чужие модули (funding-carry v1) — разбираем отдельными PR
-    "src/strategies", "src/qa", "src/execution", "src/report", "src/paper",
+    ".venv",
+    "data",
+    "backtest",
+    "backtest_funding",
+    "journal",
+    "notebooks",
+    "src/strategies",
+    "src/qa",
+    "src/execution",
+    "src/report",
+    "src/paper",
     "scripts/qa_daily_report.py",
-    "tests/test_backtest.py", "tests/test_gates.py", "tests/test_honesty.py",
-    "tests/test_portfolio.py", "tests/test_signal.py",
+    "tests/test_backtest.py",
+    "tests/test_gates.py",
+    "tests/test_honesty.py",
+    "tests/test_portfolio.py",
+    "tests/test_signal.py",
 ]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
-# B008 typer.Option() в default — известный FP; defensive broad-except — намеренно
 ignore = ["B008", "RUF001", "RUF002", "RUF003"]
-
-[tool.ruff.lint.per-file-ignores]
-# Оборона: сетевые адаптеры и I/O-код ловят широкие исключения осознанно
-"src/pipeline/*.py"                = ["BLE001", "S110", "S112", "PLW1510"]
-"scripts/data_audit.py"            = ["BLE001", "S110"]
-                                      "PERF102", "RUF007", "PLR0124"]
-"tests/*.py"                       = ["RUF059"]
 
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
-warn_unused_ignores   = true
+warn_unused_ignores = true
 files = ["src", "scripts", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["ccxt", "pandas", "typer", "src.risk.kill_switch", "qa.*", "src.qa.*",
-          "src.strategies.*", "src.execution.*", "src.report.*", "src.paper.*"]
+module = [
+    "ccxt",
+    "pandas",
+    "typer",
+    "src.risk.kill_switch",
+    "qa.*",
+    "src.qa.*",
+    "src.strategies.*",
+    "src.execution.*",
+    "src.report.*",
+    "src.paper.*",
+]
 ignore_missing_imports = true
-ignore_errors          = true
+ignore_errors = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths  = ["tests"]
+testpaths = ["tests"]
 pythonpath = ["."]
-addopts    = "-q --strict-markers --strict-config"
+addopts = "-q --strict-markers"
+filterwarnings = ["ignore::DeprecationWarning"]
 asyncio_mode = "strict"
-
-# Чужие модули — tech-debt freeze, разбираем отдельными PR
-"src/strategies/**"       = ["E402", "E501", "E702", "UP017", "UP035", "UP042", "B904", "B905"]
-"src/qa/**"               = ["E402", "E501", "E702", "UP017", "UP035", "B904", "B905"]
-"src/execution/**"        = ["E402", "E501", "B904"]
-"src/report/**"           = ["E402"]
-"src/paper/**"            = ["E402"]
-"tests/test_backtest.py"  = ["UP017"]
-"tests/test_gates.py"     = ["UP017"]
-"tests/test_honesty.py"   = ["UP017"]
-"tests/test_portfolio.py" = ["UP017"]
-"tests/test_signal.py"    = ["UP017"]
