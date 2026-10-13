@@ -32,3 +32,8 @@ __pycache__/
 # local synth outputs (dev only)
 backtest/results/SYNTH*
 backtest/results/SYNTH2*
+
+# --- qa-paper ---
+docs/reports/*.md
+!docs/reports/.gitkeep
+qa_alerts.log
