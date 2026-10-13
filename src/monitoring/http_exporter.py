@@ -1,8 +1,8 @@
 """Prometheus HTTP exporter on :9100.
 
 Reads state from SQLite (`risk.db`) and publishes gauges every `interval`
-seconds. Order counter is deduplicated by `order_id`, so long-running
-exporters do not inflate `risk_orders_total` on every poll.
+seconds. Tolerates a missing or empty DB (publishes zeros) and deduplicates
+`risk_orders_total` by `order_id` across polls.
 """
 from __future__ import annotations
 import argparse
@@ -27,6 +27,7 @@ class Exporter:
         self.interval = interval
         self._stop = threading.Event()
         self._seen_orders: set[str] = set()
+        self._warned_missing = False
 
     # ---- lifecycle ------------------------------------------------
     def _handle_signal(self, signum, _frame) -> None:
@@ -62,6 +63,9 @@ class Exporter:
         logger.info("clean exit")
 
     # ---- db helpers -----------------------------------------------
+    def _db_ok(self) -> bool:
+        return Path(self.db_path).exists()
+
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(f"file:{self.db_path}?mode=ro",
                                uri=True, timeout=2.0)
@@ -69,7 +73,7 @@ class Exporter:
         return conn
 
     def _preload_seen_orders(self) -> None:
-        if not Path(self.db_path).exists():
+        if not self._db_ok():
             return
         today = datetime.now(timezone.utc).replace(
             hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -84,6 +88,14 @@ class Exporter:
         logger.info("preloaded {} order ids for dedupe", n)
 
     def _read_state(self) -> RiskState:
+        if not self._db_ok():
+            if not self._warned_missing:
+                logger.warning("db {} not found - publishing zeros",
+                               self.db_path)
+                self._warned_missing = True
+            return RiskState()
+
+        self._warned_missing = False
         with self._connect() as conn:
             snap = conn.execute(
                 "SELECT ts, nav, daily_pnl, drawdown_pct, nav_start_of_day "
@@ -158,7 +170,8 @@ def main(argv=None) -> int:
                       "<level>{level: <7}</level> | {message}")
 
     if not Path(args.db).exists():
-        logger.warning("db {} does not exist yet - starting anyway", args.db)
+        logger.warning("db {} does not exist yet - starting with zero gauges",
+                       args.db)
 
     Exporter(args.db, interval=args.interval).run(port=args.port, addr=args.addr)
     return 0
