@@ -12,14 +12,14 @@ import json
 import sqlite3
 import sys
 from dataclasses import asdict, dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DB   = ROOT / "state" / "pipeline.sqlite"
 
 
-class State(str, Enum):
+class State(StrEnum):
     BOOTSTRAP  = "BOOTSTRAP"
     PAPER_DRY  = "PAPER_DRY"
     PAPER_LIVE = "PAPER_LIVE"
@@ -121,7 +121,7 @@ def history(limit: int = 50) -> list[dict]:
         rows = c.execute(
             "SELECT ts, from_state, to_state, reason FROM pipeline_transitions "
             "ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-    return [dict(zip(("ts", "from_state", "to_state", "reason"), r)) for r in rows]
+    return [dict(zip(("ts", "from_state", "to_state", "reason"), r, strict=True)) for r in rows]
 
 
 def transition(metrics: Metrics, *,
