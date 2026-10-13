@@ -25,7 +25,7 @@ TS_COLUMNS = ("ts", "created_at", "timestamp", "event_ts")
 
 
 def _stamp() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def snapshot(tag: str | None = None) -> Path:
@@ -39,7 +39,7 @@ def snapshot(tag: str | None = None) -> Path:
     if JOURNALS.exists():
         shutil.copytree(JOURNALS, dst / "data" / "journals", dirs_exist_ok=True)
     (dst / "META.txt").write_text(
-        f"snapshot_at={dt.datetime.now(dt.timezone.utc).isoformat()}\n"
+        f"snapshot_at={dt.datetime.now(dt.UTC).isoformat()}\n"
         f"tag={tag or '-'}\nroot={ROOT}\n")
     return dst
 

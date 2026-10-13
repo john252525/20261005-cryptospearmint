@@ -73,8 +73,8 @@ def _qa_status() -> str:
 
 
 def build_daily(out: str | None = None) -> Path:
-    day = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d")
-    iso = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
+    day = dt.datetime.now(dt.UTC).strftime("%Y%m%d")
+    iso = dt.datetime.now(dt.UTC).strftime("%Y-%m-%d")
     rows = _iter_rows(day)
 
     pnl     = sum(float(r.get("pnl", 0.0))     for r in rows)

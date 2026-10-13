@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,7 +89,7 @@ def render(checks, metrics, day):
 
 
 def main():
-    day = datetime.now(timezone.utc).strftime("%Y%m%d")
+    day = datetime.now(UTC).strftime("%Y%m%d")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     if not JOURNAL.exists():
         raise SystemExit(f"journal not found: {JOURNAL}")

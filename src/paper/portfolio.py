@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ..strategies.funding_carry.config import FundingCarrySettings
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 
 
 def _iso(ts=None):
-    return (ts or datetime.now(timezone.utc)).isoformat()
+    return (ts or datetime.now(UTC)).isoformat()
 
 
 class DeltaNeutralPortfolio:

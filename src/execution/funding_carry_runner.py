@@ -10,7 +10,7 @@ import logging
 import math
 import os
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -157,7 +157,7 @@ class FundingCarryRunner:
         Path(settings.journal_path).parent.mkdir(parents=True, exist_ok=True)
 
     def _journal(self, **rec):
-        rec.setdefault("ts", datetime.now(timezone.utc).isoformat())
+        rec.setdefault("ts", datetime.now(UTC).isoformat())
         with open(self.s.journal_path, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, default=str) + "\n")
 
@@ -178,7 +178,7 @@ class FundingCarryRunner:
         return f
 
     async def step(self, signals):
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         sig_map = {(s.symbol, s.exchange): s for s in signals}
         for pos in self.pf.open_positions():
             sg = sig_map.get((pos["symbol"], pos["exchange"]))
@@ -250,7 +250,7 @@ class FundingCarryRunner:
                 perp_qty=-perp_qty if perp_side == "SELL" else perp_qty,
                 spot_entry=spot_fill, perp_entry=perp_fill,
                 entry_funding_bps=sig.funding_bps_8h, notional_usd=notional)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             self.pf.record_order(now, sig.symbol, "binance_spot", "spot",
                                  spot_side, spot_qty, spot_fill,
                                  _oid(spot_resp), fee_spot, "FILLED")
@@ -300,7 +300,7 @@ class FundingCarryRunner:
             spot_fill = _avg_fill(spot_resp, sig.spot_price)
             perp_fill = _avg_fill(perp_resp, sig.perp_price)
             pnl = self.pf.close_position(pos["id"], spot_fill, perp_fill, fees=fees)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             self.pf.record_order(now, pos["symbol"], "binance_spot", "spot",
                                  spot_side, spot_qty, spot_fill,
                                  _oid(spot_resp), fee_spot, "FILLED")

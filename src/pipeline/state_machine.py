@@ -102,7 +102,7 @@ def _log(frm: State, to: State, reason: str, metrics: Metrics) -> None:
             "INSERT INTO pipeline_transitions"
             "(ts, from_state, to_state, reason, metrics_json) "
             "VALUES (?, ?, ?, ?, ?)",
-            (dt.datetime.now(dt.timezone.utc).isoformat(),
+            (dt.datetime.now(dt.UTC).isoformat(),
              frm.value, to.value, reason,
              json.dumps(asdict(metrics), default=str)))
         c.commit()

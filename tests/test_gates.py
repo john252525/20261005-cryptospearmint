@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from src.strategies.funding_carry.config import FundingCarrySettings
 from src.strategies.funding_carry.gates import (
@@ -12,7 +12,7 @@ from src.strategies.funding_carry.signal import Signal
 
 def _sig(funding_bps, basis_bps, direction):
     return Signal(
-        ts=datetime.now(timezone.utc),
+        ts=datetime.now(UTC),
         symbol="BTCUSDT",
         exchange="binance",
         funding_rate=funding_bps / 1e4,
@@ -27,7 +27,7 @@ def _sig(funding_bps, basis_bps, direction):
 
 def test_cooldown_blocks_then_allows():
     g = CooldownGate(cooldown_sec=60)
-    t0 = datetime(2024, 9, 1, 12, 0, 0, tzinfo=timezone.utc)
+    t0 = datetime(2024, 9, 1, 12, 0, 0, tzinfo=UTC)
     assert g.try_consume("BTCUSDT:binance", t0) is True
     assert g.try_consume("BTCUSDT:binance", t0 + timedelta(seconds=30)) is False
     assert g.try_consume("BTCUSDT:binance", t0 + timedelta(seconds=59)) is False
@@ -36,7 +36,7 @@ def test_cooldown_blocks_then_allows():
 
 def test_cooldown_is_per_key():
     g = CooldownGate(cooldown_sec=60)
-    t0 = datetime(2024, 9, 1, tzinfo=timezone.utc)
+    t0 = datetime(2024, 9, 1, tzinfo=UTC)
     assert g.try_consume("BTCUSDT:binance", t0)
     assert g.try_consume("ETHUSDT:binance", t0) is True
     assert g.try_consume("BTCUSDT:bybit", t0) is True
@@ -44,7 +44,7 @@ def test_cooldown_is_per_key():
 
 def test_cooldown_seconds_left():
     g = CooldownGate(cooldown_sec=60)
-    t0 = datetime(2024, 9, 1, tzinfo=timezone.utc)
+    t0 = datetime(2024, 9, 1, tzinfo=UTC)
     g.try_consume("X", t0)
     assert g.seconds_left("X", t0 + timedelta(seconds=20)) == 40.0
     assert g.seconds_left("X", t0 + timedelta(seconds=90)) == 0.0

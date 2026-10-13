@@ -34,7 +34,7 @@ def _chat() -> str:
 
 
 def _now() -> str:
-    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return dt.datetime.now(dt.UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
 def format_event(event: str, data: dict[str, Any]) -> str:

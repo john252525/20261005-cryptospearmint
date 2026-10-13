@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -163,13 +163,13 @@ def run_backtest(settings, data=None, seed=None):
     m["symbols"] = list(settings.symbols); m["days"] = settings.days
     m["cost_bps_per_leg_change"] = settings.cost_bps_per_leg_change
     m["round_trip_cost_bps"] = settings.round_trip_cost_bps
-    m["generated_at"] = datetime.now(timezone.utc).isoformat()
+    m["generated_at"] = datetime.now(UTC).isoformat()
     return daily, m, trades
 
 
 def save_results(daily, metrics, trades, settings):
     out_dir = Path(settings.results_dir); out_dir.mkdir(parents=True, exist_ok=True)
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+    stamp = datetime.now(UTC).strftime("%Y%m%d")
     p = out_dir / f"funding_carry_{stamp}.parquet"
     daily.to_parquet(p, index=True)
     with open(out_dir / f"funding_carry_{stamp}.metrics.json", "w") as fh:
