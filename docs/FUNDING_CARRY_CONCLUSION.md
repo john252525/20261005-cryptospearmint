@@ -14,7 +14,8 @@ _generated: 2026-10-13T13:14:36.607988+00:00 | grid: `backtest/results/funding_c
 | 3.000 | vip1_bnb | 0 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |  |
 | 5.000 | vip1_bnb | 0 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |  |
 ## Best combinations
-- max net_pnl: min_funding=2.0, tier=vip0, net=$0.00, sharpe=0.00, ratio=nan
+- max net_pnl среди активных (trades>0): min_funding=1.0, tier=vip1_bnb, net=$-138.34, sharpe=-16.61, ratio=0.0673
+(ячейки с 0 trades имеют net=$0.00 по определению и исключены)
 - max ratio:   min_funding=1.0, tier=vip1_bnb, net=$-138.34, sharpe=-16.61, ratio=0.0673
 - max min_funding с trades>0: **1.0 bps** (выше — ноль входов)
 ## Критерий positive expectancy: ratio_funding_to_fees > 1.5
