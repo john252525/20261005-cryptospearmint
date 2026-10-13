@@ -1,0 +1,38 @@
+# funding-carry / Binance Testnet paper config
+# Env override: FC_<FIELD> (e.g. FC_MIN_FUNDING_BPS=1.5)
+# Testnet keys: BINANCE_TESTNET_API_KEY / BINANCE_TESTNET_API_SECRET
+
+symbols: [BTCUSDT, ETHUSDT, SOLUSDT]
+exchanges: [binance, bybit]
+
+min_funding_bps: 1.0
+max_basis_bps: 30.0
+rebalance_threshold_bps: 5.0
+
+max_pos_per_symbol_usd: 1000.0
+target_leverage: 1.0
+
+poll_interval_sec: 30
+entry_cooldown_sec: 60
+kill_if_slippage_bps_gt: 20.0
+
+# Binance VIP0 taker: spot 0.10%, USDT-M futures 0.05%; slippage 2 bps per leg per side
+spot_taker_fee: 0.0010
+perp_taker_fee: 0.0005
+slippage_bps: 2.0
+
+funding_interval_hours: 8
+funding_intervals_per_day: 3
+
+days: 90
+seed: 42
+
+binance_fapi: "https://fapi.binance.com"
+binance_spot: "https://api.binance.com"
+bybit_v5: "https://api.bybit.com"
+binance_spot_testnet: "https://testnet.binance.vision"
+binance_futures_testnet: "https://testnet.binancefuture.com"
+
+journal_path: "journal/funding_carry.jsonl"
+db_path: "state/funding_carry.db"
+results_dir: "backtest/results"
