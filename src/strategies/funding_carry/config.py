@@ -1,6 +1,6 @@
 """Funding-carry strategy settings (pydantic v2 + pydantic-settings)."""
 from __future__ import annotations
-from typing import List
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,8 +9,8 @@ class FundingCarrySettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="FC_", env_file=".env",
                                       env_nested_delimiter="__", extra="ignore")
 
-    symbols: List[str] = Field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT"])
-    exchanges: List[str] = Field(default_factory=lambda: ["binance", "bybit"])
+    symbols: list[str] = Field(default_factory=lambda: ["BTCUSDT", "ETHUSDT", "SOLUSDT"])
+    exchanges: list[str] = Field(default_factory=lambda: ["binance", "bybit"])
 
     min_funding_bps: float = 1.0
     max_basis_bps: float = 30.0

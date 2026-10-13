@@ -1,6 +1,12 @@
 """Hourly reconciliation of local position state vs venue (testnet)."""
 from __future__ import annotations
-import json, logging, os, sqlite3, time, urllib.request
+
+import json
+import logging
+import os
+import sqlite3
+import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 

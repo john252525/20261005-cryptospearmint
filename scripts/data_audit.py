@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import sys
 from datetime import datetime, timezone
+from typing import Any
 from pathlib import Path
 
 import pandas as pd
@@ -58,7 +59,7 @@ def _one(path: Path) -> dict:
     if "volume" in df.columns and len(df) > 0:
         zero_vol_pct = float((df["volume"] <= 0).mean() * 100.0)
 
-    return {"path": str(path), "rows": int(len(df)), "ts_col": ts_col,
+    return {"path": str(path), "rows": len(df), "ts_col": ts_col,
             "interval_med_s": med,
             "gaps": int((diff > 2 * med).sum()) if med > 0 else 0,
             "dupes": int(ts.duplicated().sum()),
@@ -69,7 +70,7 @@ def _one(path: Path) -> dict:
 
 def main() -> int:
     files = sorted(BARS.glob("*.parquet"))
-    rep = {"ts": datetime.now(timezone.utc).isoformat(), "files": [],
+    rep: dict[str, Any] = {"ts": datetime.now(timezone.utc).isoformat(), "files": [],
            "gaps": 0, "dupes": 0, "non_monotonic": 0,
            "ohlc_violations": 0, "zero_vol_pct_avg": 0.0}
     if not files:

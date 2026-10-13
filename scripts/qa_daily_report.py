@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 """Daily QA honesty report -> docs/reports/qa_YYYYMMDD.md"""
 from __future__ import annotations
-import sqlite3, sys
+
+import sqlite3
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from qa.honesty_checks import run_checks, _load  # noqa: E402
+from qa.honesty_checks import _load, run_checks
 
 JOURNAL = ROOT / "journal" / "journal.jsonl"
 DB = ROOT / "state" / "state.db"

@@ -1,16 +1,31 @@
 """Paper / testnet runner: Binance Testnet spot + USDT-M futures."""
 from __future__ import annotations
-import argparse, asyncio, hashlib, hmac, json, logging, math, os, time
+
+import argparse
+import asyncio
+import hashlib
+import hmac
+import json
+import logging
+import math
+import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
 from urllib.parse import urlencode
-import httpx, yaml
+
+import httpx
+import yaml
+
 from ..paper.portfolio import DeltaNeutralPortfolio
 from ..strategies.funding_carry.config import FundingCarrySettings
-from ..strategies.funding_carry.gates import (CooldownGate, needs_rebalance,
-                                              passes_entry_filters, should_exit)
-from ..strategies.funding_carry.signal import Signal, get_signals
+from ..strategies.funding_carry.gates import (
+    CooldownGate,
+    needs_rebalance,
+    passes_entry_filters,
+    should_exit,
+)
+from ..strategies.funding_carry.signal import get_signals
 
 log = logging.getLogger(__name__)
 
@@ -138,7 +153,7 @@ class FundingCarryRunner:
         self.gate = CooldownGate(settings.entry_cooldown_sec)
         self.client = client
         self.halted = False
-        self._filters: Dict[str, dict] = {}
+        self._filters: dict[str, dict] = {}
         Path(settings.journal_path).parent.mkdir(parents=True, exist_ok=True)
 
     def _journal(self, **rec):

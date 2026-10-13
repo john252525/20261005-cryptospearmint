@@ -1,10 +1,18 @@
 """Event-driven 90d funding-carry backtest (Binance public data)."""
 from __future__ import annotations
-import argparse, asyncio, json, logging, time
+
+import argparse
+import asyncio
+import json
+import logging
+import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-import httpx, numpy as np, pandas as pd
+
+import httpx
+import numpy as np
+import pandas as pd
+
 from .config import FundingCarrySettings
 from .signal import classify
 
@@ -23,7 +31,7 @@ def target_pos(funding_bps: float, basis_bps: float, s: FundingCarrySettings) ->
 
 def synthetic_data(symbols, days=90, seed=42, funding_mean_bps=1.6,
                    funding_phi=0.80, funding_sigma_bps=2.5,
-                   basis_sigma_bps=12.0) -> Dict[str, Dict[str, pd.DataFrame]]:
+                   basis_sigma_bps=12.0) -> dict[str, dict[str, pd.DataFrame]]:
     rng = np.random.default_rng(seed); n = days * 3
     ts = pd.date_range(end=pd.Timestamp.now(tz="UTC").normalize(),
                        periods=n, freq="8h")

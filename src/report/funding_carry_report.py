@@ -1,6 +1,8 @@
 """Daily journal report."""
 from __future__ import annotations
-import argparse, json
+
+import argparse
+import json
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path

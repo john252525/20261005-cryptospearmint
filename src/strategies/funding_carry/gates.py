@@ -1,7 +1,8 @@
 """Entry/exit/rebalance gating — pure logic."""
 from __future__ import annotations
+
 from datetime import datetime, timedelta
-from typing import Dict
+
 from .config import FundingCarrySettings
 from .signal import DIR_FLAT, Signal
 
@@ -9,7 +10,7 @@ from .signal import DIR_FLAT, Signal
 class CooldownGate:
     def __init__(self, cooldown_sec: float) -> None:
         self.cooldown_sec = float(cooldown_sec)
-        self._last: Dict[str, datetime] = {}
+        self._last: dict[str, datetime] = {}
 
     def allow(self, key: str, now: datetime) -> bool:
         last = self._last.get(key)

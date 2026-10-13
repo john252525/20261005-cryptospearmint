@@ -50,3 +50,7 @@ src/trading_desk.egg-info/
 /data/journals/
 /data/kill_events.jsonl
 /data/qa_state.json
+/backtest/
+/backtest_funding/
+*.bak.*
+*.bak

@@ -1,10 +1,14 @@
 """Funding + basis signal ingestion: Binance & Bybit public REST."""
 from __future__ import annotations
-import asyncio, logging, math
+
+import asyncio
+import logging
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import List, Optional
+
 import httpx
+
 from .config import FundingCarrySettings
 
 log = logging.getLogger(__name__)
@@ -35,7 +39,7 @@ class Signal:
                 "confidence": self.confidence}
 
 
-def mid_price(bid, ask) -> Optional[float]:
+def mid_price(bid, ask) -> float | None:
     if bid is None or ask is None:
         return None
     try:
@@ -131,7 +135,7 @@ _FETCHERS = {"binance": fetch_binance, "bybit": fetch_bybit}
 
 
 async def get_signals(settings: FundingCarrySettings,
-                      client: Optional[httpx.AsyncClient] = None) -> List[Signal]:
+                      client: httpx.AsyncClient | None = None) -> list[Signal]:
     own = client is None
     if own:
         client = httpx.AsyncClient(timeout=10.0)
@@ -145,7 +149,7 @@ async def get_signals(settings: FundingCarrySettings,
     results = await asyncio.gather(*tasks, return_exceptions=True)
     if own:
         await client.aclose()
-    out: List[Signal] = []
+    out: list[Signal] = []
     for key, res in zip(keys, results):
         if isinstance(res, Exception):
             log.warning("signal task %s raised: %s", key, res); continue

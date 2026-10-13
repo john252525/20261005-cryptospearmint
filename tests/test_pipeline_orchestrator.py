@@ -9,6 +9,7 @@ import pytest
 def test_orchestrator_help_lists_commands():
     pytest.importorskip("typer")
     from click.testing import CliRunner
+
     from src.pipeline.orchestrator import app
     r = CliRunner().invoke(app, ["--help"])
     assert r.exit_code == 0
@@ -19,6 +20,7 @@ def test_orchestrator_help_lists_commands():
 def test_orchestrator_bad_strategy_exits_nonzero():
     pytest.importorskip("typer")
     from click.testing import CliRunner
+
     from src.pipeline.orchestrator import app
     r = CliRunner().invoke(app, ["backtest", "--strategy", "nope"])
     assert r.exit_code != 0
@@ -49,8 +51,8 @@ def test_notify_format_transition():
 
 
 def test_rollback_is_idempotent(tmp_path, monkeypatch):
-    from src.pipeline import state_machine as sm
     import scripts.rollback as rb
+    from src.pipeline import state_machine as sm
 
     monkeypatch.setattr(sm, "DB", tmp_path / "state" / "pipeline.sqlite")
     sm.DB.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,11 @@
 """QA honesty checks for funding-carry paper pipeline."""
 from __future__ import annotations
-import json, logging, os, sqlite3, urllib.request
+
+import json
+import logging
+import os
+import sqlite3
+import urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path

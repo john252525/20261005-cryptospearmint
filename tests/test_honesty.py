@@ -1,10 +1,11 @@
 """Synthetic journal tests: honest paper must pass, fake paper must be caught."""
-import json, sys
+import json
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from qa.honesty_checks import run_checks  # noqa: E402
+from qa.honesty_checks import run_checks
 
 
 def _w(tmp_path, events):

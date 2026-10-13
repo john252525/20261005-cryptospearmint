@@ -1,10 +1,11 @@
 """Delta-neutral portfolio accounting with SQLite persistence."""
 from __future__ import annotations
+
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional
+
 from ..strategies.funding_carry.config import FundingCarrySettings
 
 SCHEMA = """
@@ -92,7 +93,7 @@ class DeltaNeutralPortfolio:
     def funding_accrued(self):
         return self._meta("funding_accrued")
 
-    def open_positions(self) -> List[dict]:
+    def open_positions(self) -> list[dict]:
         rows = self._conn.execute(
             "SELECT * FROM positions WHERE status='open' ORDER BY id").fetchall()
         return [dict(r) for r in rows]
@@ -171,7 +172,7 @@ class DeltaNeutralPortfolio:
         self._set_meta("funding_accrued", self.funding_accrued + income)
         return income
 
-    def mark_to_market(self, marks: Dict[str, Dict[str, float]]) -> dict:
+    def mark_to_market(self, marks: dict[str, dict[str, float]]) -> dict:
         unrealized = delta_usd = basis_usd = notional_sum = 0.0
         for p in self.open_positions():
             mk = marks.get(p["symbol"])
@@ -205,5 +206,5 @@ class DeltaNeutralPortfolio:
                        m["basis_usd"], m["basis_bps"]))
         return m
 
-    def recover(self) -> List[dict]:
+    def recover(self) -> list[dict]:
         return self.open_positions()
