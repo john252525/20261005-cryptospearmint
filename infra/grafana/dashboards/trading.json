@@ -1,0 +1,154 @@
+{
+  "uid": "trading-risk-v0",
+  "title": "Trading Risk v0",
+  "tags": ["risk", "prop"],
+  "timezone": "browser",
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1, "type": "timeseries", "title": "NAV",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": {
+        "unit": "currencyUSD", "decimals": 2,
+        "color": { "mode": "palette-classic" },
+        "custom": { "fillOpacity": 12, "lineWidth": 2, "showPoints": "never" }
+      }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "risk_nav", "legendFormat": "NAV"
+      }]
+    },
+    {
+      "id": 2, "type": "timeseries",
+      "title": "Drawdown % (L2=4 / L3=6 / L4=8)",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": {
+        "unit": "percent", "decimals": 2, "min": 0,
+        "color": { "mode": "thresholds" },
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green",  "value": null },
+          { "color": "yellow", "value": 4 },
+          { "color": "orange", "value": 6 },
+          { "color": "red",    "value": 8 }
+        ] },
+        "custom": { "fillOpacity": 25, "lineWidth": 2 }
+      }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "risk_drawdown_pct", "legendFormat": "drawdown %"
+      }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Kill level",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": {
+        "unit": "short", "decimals": 0,
+        "mappings": [
+          { "type": "value", "options": { "0": { "text": "L0 NORMAL",  "color": "green"    } } },
+          { "type": "value", "options": { "1": { "text": "L1 WARN",    "color": "yellow"   } } },
+          { "type": "value", "options": { "2": { "text": "L2 HALT",    "color": "orange"   } } },
+          { "type": "value", "options": { "3": { "text": "L3 FLATTEN", "color": "red"      } } },
+          { "type": "value", "options": { "4": { "text": "L4 HARD",    "color": "dark-red" } } }
+        ],
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green",    "value": null },
+          { "color": "yellow",   "value": 1 },
+          { "color": "orange",   "value": 2 },
+          { "color": "red",      "value": 3 },
+          { "color": "dark-red", "value": 4 }
+        ] }
+      }, "overrides": [] },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "colorMode": "background", "graphMode": "none",
+        "justifyMode": "auto", "textMode": "auto"
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "risk_kill_level", "instant": true
+      }]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Orders / sec",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": {
+        "unit": "ops", "decimals": 3,
+        "custom": { "fillOpacity": 15, "lineWidth": 2, "showPoints": "never" }
+      }, "overrides": [] },
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi", "sort": "desc" }
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "sum(rate(risk_orders_total[1m])) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    },
+    {
+      "id": 5, "type": "heatmap", "title": "Order latency",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": {
+        "calculate": false,
+        "color": { "mode": "scheme", "scheme": "Spectral", "steps": 64, "reverse": true },
+        "cellGap": 2,
+        "yAxis": { "unit": "s", "axisPlacement": "left" },
+        "tooltip": { "show": true, "mode": "single" },
+        "legend": { "show": true }
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "sum(increase(risk_order_latency_seconds_bucket[1m])) by (le)",
+        "format": "heatmap", "legendFormat": "{{le}}"
+      }]
+    },
+    {
+      "id": 6, "type": "bargauge",
+      "title": "Positions by symbol (notional)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "fieldConfig": { "defaults": {
+        "unit": "currencyUSD", "min": 0, "decimals": 0,
+        "color": { "mode": "continuous-GrYlRd" },
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }
+        ] }
+      }, "overrides": [] },
+      "options": {
+        "displayMode": "gradient", "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "showUnfilled": true
+      },
+      "targets": [{
+        "refId": "A",
+        "datasource": { "type": "prometheus", "uid": "Prometheus" },
+        "expr": "abs(risk_position_size)", "instant": true,
+        "legendFormat": "{{symbol}}"
+      }]
+    }
+  ]
+}
