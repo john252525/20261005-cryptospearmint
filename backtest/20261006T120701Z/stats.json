@@ -1,0 +1,18 @@
+{
+  "engine": "pandas-v1",
+  "bars": 10080,
+  "final_equity": 80573.03,
+  "Total Return [%]": -19.427,
+  "Buy and Hold [%]": 2.1993,
+  "Max Drawdown [%]": -20.0626,
+  "Sharpe Ratio": -43.7691,
+  "Trades": 116,
+  "Wins": 13,
+  "Win Rate [%]": 11.21,
+  "open_position": {
+    "open_since": "2026-10-06 09:54:00",
+    "entry_price": 86132.52648,
+    "last_price": 86284.0,
+    "unrealized_pnl": 141.4478
+  }
+}

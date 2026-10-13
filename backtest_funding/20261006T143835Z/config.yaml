@@ -1,0 +1,19 @@
+env: paper
+data:
+  source: binance_futures
+  symbols: [BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT]
+  interval: 1h
+  start: "2025-10-06"
+  end:   "2026-10-06"
+strategy:
+  name: funding_carry
+  params:
+    lookback:  21
+    entry_thr: 0.00005
+    exit_thr: -0.00003
+    stat: median
+backtest:
+  init_cash: 500000       # $100k на символ
+  spot_fee: 0.0010
+  perp_fee: 0.0005
+  deploy_ratio: 0.9

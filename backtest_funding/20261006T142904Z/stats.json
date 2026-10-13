@@ -1,0 +1,14 @@
+{
+  "engine": "funding-carry-pandas-v1",
+  "bars": 9227,
+  "init_cash": 100000,
+  "final_equity": 99936.55,
+  "Total Return [%]": -0.0634,
+  "Max Drawdown [%]": -0.0675,
+  "Sharpe Ratio": -6.6987,
+  "Trades": 0,
+  "Wins": 0,
+  "Win Rate [%]": 0.0,
+  "Funding Income [USDT]": 4.05,
+  "Funding Events": 5
+}

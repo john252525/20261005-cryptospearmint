@@ -46,3 +46,19 @@ report-funding-json:
 
 clean-db:
 	rm -f state/funding_carry.db journal/funding_carry.jsonl
+
+# -- pipeline (pipeline-monitoring rebuild) --
+.PHONY: pipeline-daily pipeline-nightly pipeline-rollback
+pipeline-daily:
+	$(PYTHON) -m src.pipeline.orchestrator report --kind daily
+
+pipeline-nightly:
+	$(PYTHON) -m src.pipeline.orchestrator fetch --symbol BTCUSDT --interval 1h --days 7
+	$(PYTHON) -m src.pipeline.orchestrator audit
+	$(PYTHON) -m src.pipeline.orchestrator backtest --strategy funding_carry --since 90d
+	$(PYTHON) -m src.pipeline.orchestrator qa --allow-no-creds
+	$(PYTHON) -m src.pipeline.orchestrator report --kind daily
+
+pipeline-rollback:
+	@if [ -z "$(DATE)" ]; then echo "usage: make pipeline-rollback DATE=YYYY-MM-DD [APPLY=1]"; exit 2; fi
+	$(PYTHON) -m scripts.rollback --to-date $(DATE) $(if $(APPLY),,--dry-run)

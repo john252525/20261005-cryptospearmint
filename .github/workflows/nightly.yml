@@ -1,0 +1,80 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync
+      - name: fetch data
+        run: |
+          uv run python -m src.pipeline.orchestrator fetch \
+            --symbol BTCUSDT --interval 1h --days 7
+      - name: audit data
+        run: uv run python -m src.pipeline.orchestrator audit
+      - name: backtest
+        run: |
+          uv run python -m src.pipeline.orchestrator backtest \
+            --strategy funding_carry --since 90d
+      - name: qa-once
+        run: uv run python -m src.pipeline.orchestrator qa --allow-no-creds
+      - name: daily report
+        run: uv run python -m src.pipeline.orchestrator report --kind daily
+      - name: upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-${{ github.run_number }}
+          path: |
+            artifacts/*.json
+            backtest/**/*.parquet
+            backtest/**/*.json
+            docs/reports/daily_*.md
+            docs/reports/qa_latest.md
+            logs/qa_last.log
+          retention-days: 30
+          if-no-files-found: warn
+      - name: publish to nightly-results
+        if: success()
+        run: |
+          set -eux
+          D="$(date -u +%Y%m%d)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin nightly-results || true
+          git checkout -B nightly-results
+          mkdir -p "nightly/${D}"
+          [ -f artifacts/data_audit.json ]    && cp -f artifacts/data_audit.json "nightly/${D}/" || true
+          [ -f "docs/reports/daily_${D}.md" ] && cp -f "docs/reports/daily_${D}.md" "nightly/${D}/" || true
+          [ -f docs/reports/qa_latest.md ]    && cp -f docs/reports/qa_latest.md "nightly/${D}/" || true
+          find backtest -maxdepth 3 -name '*.parquet' \
+            -exec cp -f {} "nightly/${D}/" \; 2>/dev/null || true
+          git add "nightly/"
+          if git diff --cached --quiet; then
+            echo "[nightly] no changes"
+          else
+            git commit -m "nightly ${D} (run ${GITHUB_RUN_NUMBER})"
+            git push origin nightly-results --force
+          fi

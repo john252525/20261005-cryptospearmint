@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-type-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+      - run: uv sync
+      - name: ruff
+        run: uv run ruff check .
+      - name: mypy
+        run: uv run mypy src scripts tests
+      - name: pytest (coverage >= 80%)
+        run: |
+          uv run pytest -x -q \
+            --cov=src --cov=scripts \
+            --cov-fail-under=80 \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml

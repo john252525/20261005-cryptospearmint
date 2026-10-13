@@ -1,0 +1,52 @@
+{
+  "engine": "funding-carry-pandas-v1-portfolio",
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "BNBUSDT",
+    "XRPUSDT"
+  ],
+  "init_cash": 500000.0,
+  "final_equity": 501500.36,
+  "Total Return [%]": 0.3001,
+  "Max Drawdown [%]": -0.0404,
+  "Sharpe Ratio": 4.6115,
+  "Trades": 13,
+  "Wins": 8,
+  "Win Rate [%]": 61.54,
+  "Funding Income [USDT]": 2299.82,
+  "Funding Events": 1327,
+  "per_symbol": {
+    "BTCUSDT": {
+      "final_equity": 100560.61,
+      "Total Return [%]": 0.5606,
+      "Funding Income [USDT]": 678.46,
+      "Trades": 2
+    },
+    "ETHUSDT": {
+      "final_equity": 100382.72,
+      "Total Return [%]": 0.3827,
+      "Funding Income [USDT]": 568.06,
+      "Trades": 3
+    },
+    "SOLUSDT": {
+      "final_equity": 100079.82,
+      "Total Return [%]": 0.0798,
+      "Funding Income [USDT]": 329.53,
+      "Trades": 4
+    },
+    "BNBUSDT": {
+      "final_equity": 100376.78,
+      "Total Return [%]": 0.3768,
+      "Funding Income [USDT]": 436.9,
+      "Trades": 1
+    },
+    "XRPUSDT": {
+      "final_equity": 100100.43,
+      "Total Return [%]": 0.1004,
+      "Funding Income [USDT]": 286.87,
+      "Trades": 3
+    }
+  }
+}

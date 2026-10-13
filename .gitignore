@@ -33,3 +33,20 @@ __pycache__/
 docs/reports/*.md
 !docs/reports/.gitkeep
 qa_alerts.log
+
+# rebuild
+.coverage
+src/trading_desk.egg-info/
+*.egg-info/
+.qa_hourly.pid
+/state/
+/backups/
+/artifacts/
+/logs/
+/data/bars/
+/data/lake/
+/data/state.db
+/data/journal.jsonl
+/data/journals/
+/data/kill_events.jsonl
+/data/qa_state.json

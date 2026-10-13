@@ -1,0 +1,9 @@
+crypto:
+  symbol: BTCUSDT
+  interval: 1m
+  days: 7
+backtest:
+  fast: 20
+  slow: 50
+  init_cash: 100000.0
+  fees: 0.001
