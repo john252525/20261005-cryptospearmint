@@ -1,6 +1,6 @@
 """Funding-carry strategy settings (pydantic v2 + pydantic-settings)."""
 from __future__ import annotations
-from typing import List
+from typing import List, Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +18,8 @@ class FundingCarrySettings(BaseSettings):
 
     max_pos_per_symbol_usd: float = 1000.0
     target_leverage: float = 1.0
+
+    fee_tier: Literal["vip0", "vip1_bnb"] = "vip0"
 
     poll_interval_sec: int = 30
     entry_cooldown_sec: int = 60
@@ -46,7 +48,13 @@ class FundingCarrySettings(BaseSettings):
 
     @property
     def cost_bps_per_leg_change(self) -> float:
-        return self.spot_taker_fee * 1e4 + self.perp_taker_fee * 1e4 + 2.0 * self.slippage_bps
+        if self.fee_tier == "vip1_bnb":
+            # estimate; requires verification against current Binance fee schedule
+            spot_bps, perp_bps = 6.0, 3.0
+        else:
+            spot_bps = self.spot_taker_fee * 1e4
+            perp_bps = self.perp_taker_fee * 1e4
+        return spot_bps + perp_bps + 2.0 * self.slippage_bps
 
     @property
     def round_trip_cost_bps(self) -> float:

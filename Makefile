@@ -46,3 +46,8 @@ report-funding-json:
 
 clean-db:
 	rm -f state/funding_carry.db journal/funding_carry.jsonl
+
+backtest-funding-grid:
+	$(PY) -m src.strategies.funding_carry.backtest --days 90 \
+		--symbols BTCUSDT,ETHUSDT,SOLUSDT --grid \
+		--grid-min-funding 0.5,1.0,2.0,3.0,5.0 --grid-tier vip0,vip1_bnb

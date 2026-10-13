@@ -247,18 +247,76 @@ async def fetch_history(settings, client=None):
     return out
 
 
+def sensitivity_grid(min_funding_list, fee_tier_list, days=90, symbols=None,
+                     data=None, seed=42):
+    """V2 sensitivity grid over (min_funding_bps x fee_tier)."""
+    symbols = list(symbols) if symbols else ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    if data is None:
+        try:
+            data = asyncio.run(fetch_history(FundingCarrySettings(
+                symbols=symbols, days=days, seed=seed)))
+        except Exception as exc:
+            log.error("grid fetch_history: %s", exc); data = {}
+    rows = []
+    for tier in fee_tier_list:
+        for mf in min_funding_list:
+            s = FundingCarrySettings(symbols=symbols, days=days, seed=seed,
+                                     min_funding_bps=float(mf), fee_tier=str(tier))
+            try:
+                _, m, _ = run_backtest(s, data=data)
+            except Exception as exc:
+                log.error("cell (%s,%s): %s", tier, mf, exc); m = {}
+            n = max(1, int(m.get("trades_count") or 0))
+            f = float(m.get("funding_pnl_usd") or 0.0)
+            b = float(m.get("basis_pnl_usd") or 0.0)
+            c = float(m.get("fees_usd") or 0.0)
+            N = float(s.max_pos_per_symbol_usd)
+            f_bps = f / n / N * 1e4
+            c_bps = c / n / N * 1e4
+            rows.append({
+                "min_funding": float(mf), "tier": str(tier),
+                "trades_count": int(m.get("trades_count") or 0),
+                "funding_pnl_usd": f, "fees_usd": c, "net_pnl_usd": f + b - c,
+                "sharpe": float(m.get("sharpe") or 0.0),
+                "max_dd": float(m.get("max_dd") or 0.0),
+                "hit_rate": float(m.get("hit_rate") or 0.0),
+                "funding_per_trade_bps": f_bps,
+                "fees_per_trade_bps": c_bps,
+                "ratio_funding_to_fees": f_bps / c_bps if c_bps > 0 else float("nan"),
+            })
+    return pd.DataFrame(rows)
+
+
 def main():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     p = argparse.ArgumentParser()
     p.add_argument("--days", type=int, default=None)
     p.add_argument("--symbols", type=str, default=None)
     p.add_argument("--synthetic", action="store_true")
+    p.add_argument("--grid", action="store_true")
+    p.add_argument("--grid-min-funding", type=str, default="0.5,1.0,2.0,3.0,5.0")
+    p.add_argument("--grid-tier", type=str, default="vip0,vip1_bnb")
     a = p.parse_args()
     s = FundingCarrySettings()
     if a.days is not None:
         s.days = a.days
     if a.symbols:
         s.symbols = [x.strip().upper() for x in a.symbols.split(",") if x.strip()]
+    if a.grid:
+        mfs = [float(x) for x in a.grid_min_funding.split(",") if x.strip()]
+        tiers = [t.strip() for t in a.grid_tier.split(",") if t.strip()]
+        inline = synthetic_data(s.symbols, s.days, s.seed) if a.synthetic else None
+        grid = sensitivity_grid(mfs, tiers, days=s.days, symbols=s.symbols,
+                                data=inline, seed=s.seed)
+        out = Path(s.results_dir); out.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+        pq = out / f"funding_carry_grid_{stamp}.parquet"
+        cs = out / f"funding_carry_grid_{stamp}.csv"
+        grid.to_parquet(pq, index=False); grid.to_csv(cs, index=False)
+        print("=== sensitivity grid ===")
+        print(grid.to_string(index=False))
+        print(f"saved_to: {pq}"); print(f"saved_to: {cs}")
+        return
     data = synthetic_data(s.symbols, s.days, s.seed) if a.synthetic else None
     daily, m, trades = run_backtest(s, data=data)
     path = save_results(daily, m, trades, s)

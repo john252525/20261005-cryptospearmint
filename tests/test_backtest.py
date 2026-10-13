@@ -4,6 +4,7 @@ import pytest
 
 from src.strategies.funding_carry.backtest import (
     run_backtest,
+    sensitivity_grid,
     simulate_symbol,
     synthetic_data,
     target_pos,
@@ -136,3 +137,48 @@ def test_total_return_matches_trade_pnl():
     cap = m["total_capital_usd"]
     trades_net = sum(t["pnl_usd"] for t in trades)
     assert m["total_return"] * cap == pytest.approx(trades_net, abs=1e-6)
+
+
+def test_sensitivity_grid_shape():
+    data = synthetic_data(["BTCUSDT"], 20, 7)
+    g = sensitivity_grid([0.5, 1.0, 2.0], ["vip0", "vip1_bnb"],
+                         days=20, symbols=["BTCUSDT"], data=data, seed=7)
+    assert len(g) == 3 * 2
+    for col in ("min_funding", "tier", "trades_count", "net_pnl_usd",
+                "sharpe", "max_dd", "hit_rate", "funding_per_trade_bps",
+                "fees_per_trade_bps", "ratio_funding_to_fees"):
+        assert col in g.columns
+
+
+def test_cost_depends_on_tier():
+    v0 = FundingCarrySettings(fee_tier="vip0")
+    v1 = FundingCarrySettings(fee_tier="vip1_bnb")
+    assert v1.cost_bps_per_leg_change < v0.cost_bps_per_leg_change
+    assert v0.cost_bps_per_leg_change == pytest.approx(19.0)
+    assert v1.cost_bps_per_leg_change == pytest.approx(13.0)
+
+
+def test_ratio_metric_computed():
+    syms = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
+    data = synthetic_data(syms, 20, 3)
+    g = sensitivity_grid([1.0], ["vip0"], days=20, symbols=syms, data=data, seed=3)
+    r = g.iloc[0]
+    assert r["fees_per_trade_bps"] > 0
+    assert r["ratio_funding_to_fees"] == pytest.approx(
+        r["funding_per_trade_bps"] / r["fees_per_trade_bps"], rel=1e-9)
+
+
+def test_grid_deterministic():
+    d = synthetic_data(["BTCUSDT"], 20, 5)
+    g1 = sensitivity_grid([1.0, 2.0], ["vip0"], days=20,
+                          symbols=["BTCUSDT"], data=d, seed=5)
+    g2 = sensitivity_grid([1.0, 2.0], ["vip0"], days=20,
+                          symbols=["BTCUSDT"], data=d, seed=5)
+    pd.testing.assert_frame_equal(g1, g2)
+
+
+def test_grid_handles_empty_data():
+    g = sensitivity_grid([1.0, 2.0], ["vip0", "vip1_bnb"],
+                         days=10, symbols=["BTCUSDT"], data={}, seed=1)
+    assert len(g) == 4
+    assert (g["trades_count"] == 0).all()
