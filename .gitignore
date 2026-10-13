@@ -40,3 +40,10 @@ data/qa_state.json
 *.bak.*
 /backtest_funding/
 .qa_hourly.pid
+
+# bootstrap-required
+data/
+journal/
+state/
+*.db
+*.sqlite*
