@@ -1,0 +1,27 @@
+[Unit]
+Description=Trading risk metrics - Prometheus exporter on :9100
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/risk_v0
+EnvironmentFile=-/etc/default/trading-metrics
+ExecStart=/root/risk_v0/.venv/bin/python -m src.monitoring.http_exporter \
+    --db /root/risk_v0/risk.db \
+    --port 9100 \
+    --addr 0.0.0.0 \
+    --interval 5 \
+    --log-level INFO
+Restart=on-failure
+RestartSec=5
+User=root
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=false
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

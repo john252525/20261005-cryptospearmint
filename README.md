@@ -34,3 +34,17 @@ python -m oms
 
 WIP. Real broker adapter, monitoring exporter, and scheduled snapshots
 land on branches off risk-engine.
+
+## Monitoring
+
+Prometheus on :9090, Grafana on :3000, exporter on :9100.
+
+Run the exporter:
+
+    python -m src.monitoring.http_exporter --db risk.db --port 9100
+
+Docker stack:
+
+    docker compose up -d
+
+Grafana dashboard: http://localhost:3000/d/trading-risk-v0
