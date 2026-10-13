@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter, defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -58,7 +58,7 @@ def summarize(records):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--date", default=datetime.now(UTC).strftime("%Y-%m-%d"))
+    p.add_argument("--date", default=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
     p.add_argument("--journal", default="journal/funding_carry.jsonl")
     p.add_argument("--json", action="store_true")
     a = p.parse_args()

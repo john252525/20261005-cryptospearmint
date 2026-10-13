@@ -7,7 +7,7 @@ import os
 import sqlite3
 import time
 import urllib.request
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 log = logging.getLogger("qa.reconcile")
@@ -63,7 +63,7 @@ def _looks_like_placeholder(v):
 
 
 def _now():
-    return datetime.now(UTC).isoformat(timespec="milliseconds").replace("+00:00", "Z")
+    return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
 def _require_secret(name, *aliases, expected_len=None):

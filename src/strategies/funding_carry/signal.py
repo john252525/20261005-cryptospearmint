@@ -5,7 +5,7 @@ import asyncio
 import logging
 import math
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import httpx
 
@@ -97,7 +97,7 @@ async def fetch_binance(client: httpx.AsyncClient, symbol: str, s: FundingCarryS
     bb = compute_basis_bps(spot, perp)
     fb = funding_rate * 1e4
     d, c = classify(fb, bb, s.min_funding_bps, s.max_basis_bps)
-    return Signal(datetime.now(UTC), symbol, "binance",
+    return Signal(datetime.now(timezone.utc), symbol, "binance",
                   funding_rate, fb, spot, perp, bb, d, c)
 
 
@@ -127,7 +127,7 @@ async def fetch_bybit(client: httpx.AsyncClient, symbol: str, s: FundingCarrySet
     bb = compute_basis_bps(spot, perp)
     fb = funding_rate * 1e4
     d, c = classify(fb, bb, s.min_funding_bps, s.max_basis_bps)
-    return Signal(datetime.now(UTC), symbol, "bybit",
+    return Signal(datetime.now(timezone.utc), symbol, "bybit",
                   funding_rate, fb, spot, perp, bb, d, c)
 
 

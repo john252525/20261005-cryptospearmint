@@ -7,7 +7,7 @@ import os
 import sqlite3
 import urllib.request
 from collections import defaultdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 log = logging.getLogger("qa.honesty")
@@ -112,7 +112,7 @@ def check_funding_cadence(ev, cfg):
     bad, n = 0, 0
     for e in _iter(ev, "funding_credit"):
         n += 1
-        dt = datetime.fromtimestamp(_ts(e["ts"]), tz=UTC)
+        dt = datetime.fromtimestamp(_ts(e["ts"]), tz=timezone.utc)
         sf = min(abs(((dt.hour - H) % 24) * 3600 + dt.minute * 60 + dt.second)
                  for H in TH["funding_hours_utc"])
         sf = min(sf, 24 * 3600 - sf)
@@ -250,7 +250,7 @@ def check_reconcile_with_testnet(ev, cfg):
 def check_funding_income_sanity(ev, cfg):
     per_day, nav = defaultdict(float), None
     for e in _iter(ev, "funding_credit"):
-        day = datetime.fromtimestamp(_ts(e["ts"]), tz=UTC).date().isoformat()
+        day = datetime.fromtimestamp(_ts(e["ts"]), tz=timezone.utc).date().isoformat()
         per_day[day] += float(e["amount_usd"])
         nav = float(e.get("nav_usd", nav or 0.0))
     if not per_day or not nav:
@@ -294,7 +294,7 @@ def _telegram(msg):
 def _kill_event(level, check, value, cfg):
     path = cfg.get("kill_events_path", "state/kill_events.jsonl")
     Path(path).parent.mkdir(parents=True, exist_ok=True)
-    rec = {"ts": datetime.now(UTC).isoformat(timespec="milliseconds")
+    rec = {"ts": datetime.now(timezone.utc).isoformat(timespec="milliseconds")
              .replace("+00:00", "Z"),
            "level": level, "check": check, "value": value}
     with open(path, "a", encoding="utf-8") as f:

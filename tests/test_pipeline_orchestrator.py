@@ -8,7 +8,7 @@ import pytest
 
 def test_orchestrator_help_lists_commands():
     pytest.importorskip("typer")
-    from click.testing import CliRunner
+    from typer.testing import CliRunner
 
     from src.pipeline.orchestrator import app
     r = CliRunner().invoke(app, ["--help"])
@@ -19,7 +19,7 @@ def test_orchestrator_help_lists_commands():
 
 def test_orchestrator_bad_strategy_exits_nonzero():
     pytest.importorskip("typer")
-    from click.testing import CliRunner
+    from typer.testing import CliRunner
 
     from src.pipeline.orchestrator import app
     r = CliRunner().invoke(app, ["backtest", "--strategy", "nope"])

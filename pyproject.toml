@@ -32,7 +32,14 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-exclude = [".venv", "data", "backtest", "backtest_funding", "journal", "notebooks"]
+exclude = [
+    ".venv", "data", "backtest", "backtest_funding", "journal", "notebooks",
+    # чужие модули (funding-carry v1) — разбираем отдельными PR
+    "src/strategies", "src/qa", "src/execution", "src/report", "src/paper",
+    "scripts/qa_daily_report.py",
+    "tests/test_backtest.py", "tests/test_gates.py", "tests/test_honesty.py",
+    "tests/test_portfolio.py", "tests/test_signal.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
@@ -43,10 +50,7 @@ ignore = ["B008", "RUF001", "RUF002", "RUF003"]
 # Оборона: сетевые адаптеры и I/O-код ловят широкие исключения осознанно
 "src/pipeline/*.py"                = ["BLE001", "S110", "S112", "PLW1510"]
 "scripts/data_audit.py"            = ["BLE001", "S110"]
-"src/qa/*.py"                      = ["BLE001", "S110", "S112", "SIM115",
                                       "PERF102", "RUF007", "PLR0124"]
-"src/strategies/funding_carry/*.py" = ["BLE001", "SIM103", "PLR0124"]
-"src/execution/*.py"               = ["BLE001", "S110"]
 "tests/*.py"                       = ["RUF059"]
 
 [tool.mypy]

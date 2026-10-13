@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import pytest
 
@@ -57,7 +57,7 @@ def test_mid_price_missing_data_is_none():
 
 def test_signal_to_dict_roundtrip():
     s = Signal(
-        ts=datetime(2024, 9, 1, tzinfo=UTC),
+        ts=datetime(2024, 9, 1, tzinfo=timezone.utc),
         symbol="BTCUSDT",
         exchange="binance",
         funding_rate=0.0002,
