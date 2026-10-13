@@ -28,3 +28,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# --- qa-paper ---
+docs/reports/*.md
+!docs/reports/.gitkeep
+qa_alerts.log
