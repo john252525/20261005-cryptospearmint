@@ -37,3 +37,7 @@ backtest/results/SYNTH2*
 docs/reports/*.md
 !docs/reports/.gitkeep
 qa_alerts.log
+
+# --- qa-paper backtest framework ---
+backtest/results/*.csv
+backtest/results/*.json

@@ -1,0 +1,22 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [funding-carry, qa-paper, main]
+
+jobs:
+  backtest-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: venv
+        run: uv venv .venv && uv pip install --python .venv/bin/python pytest pandas
+      - name: unit tests (QA)
+        run: .venv/bin/python -m pytest tests/test_honesty.py tests/test_backtest_checks.py -q
+      - name: backtest QA scan (fixtures)
+        run: |
+          .venv/bin/python scripts/qa_backtest_scan.py \
+            --results-dir tests/fixtures/backtest_results \
+            --db /tmp/bt_qa.db \
+            --fail-on 2

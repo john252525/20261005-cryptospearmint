@@ -8,10 +8,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from qa.honesty_checks import run_checks, _load  # noqa: E402
+from qa.registry import list_recent  # noqa: E402
 
 JOURNAL = ROOT / "journal" / "journal.jsonl"
 DB = ROOT / "state" / "state.db"
 OUT_DIR = ROOT / "docs" / "reports"
+BACKTEST_QA_DB = ROOT / "state" / "backtest_qa.db"
 
 
 def _avg(xs):
@@ -68,6 +70,24 @@ def compute_metrics(events):
     }
 
 
+def _backtest_qa_section() -> str:
+    """Backtest QA registry summary for the last 24h."""
+    from datetime import timedelta
+    since = (datetime.now(timezone.utc) - timedelta(hours=24)) \
+        .strftime("%Y-%m-%dT%H:%M:%SZ")
+    rows = list_recent(str(BACKTEST_QA_DB), since_ts=since, limit=200)
+    if not rows:
+        return "\n## Backtest QA\n\n_no backtest runs in last 24h_\n"
+    lines = ["", "## Backtest QA (last 24h)", "",
+             "| backtest_id | ts | passed | failed | verdict |",
+             "|---|---|---|---|---|"]
+    for r in rows:
+        icon = {"PASS": "✅", "FAIL": "❌"}.get(r["verdict"], "⚠️")
+        lines.append(f"| `{r['backtest_id']}` | {r['ts']} | "
+                     f"{r['checks_passed']} | {r['checks_failed']} | {icon} {r['verdict']} |")
+    return "\n".join(lines) + "\n"
+
+
 def render(checks, metrics, day):
     lines = [f"# QA Honesty Report — {day}", ""]
     passed = sum(1 for r in checks.values() if r["passed"])
@@ -89,10 +109,12 @@ def render(checks, metrics, day):
 def main():
     day = datetime.now(timezone.utc).strftime("%Y%m%d")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    if not JOURNAL.exists():
-        raise SystemExit(f"journal not found: {JOURNAL}")
-    checks = run_checks(str(JOURNAL), str(DB), {"emit_alerts": False})
-    metrics = compute_metrics(_load(JOURNAL))
+    if JOURNAL.exists():
+        checks = run_checks(str(JOURNAL), str(DB), {"emit_alerts": False})
+        metrics = compute_metrics(_load(JOURNAL))
+    else:
+        print(f"warn: journal missing at {JOURNAL} — rendering report with Backtest QA only")
+        checks, metrics = {}, {}
     out = OUT_DIR / f"qa_{day}.md"
     out.write_text(render(checks, metrics, day))
     print(f"wrote {out}")

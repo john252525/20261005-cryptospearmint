@@ -46,3 +46,14 @@ report-funding-json:
 
 clean-db:
 	rm -f state/funding_carry.db journal/funding_carry.jsonl
+
+.PHONY: qa-backtest-scan qa-backtest-report
+
+qa-backtest-scan:
+	@$(PY) scripts/qa_backtest_scan.py \\
+	  --results-dir backtest/results \\
+	  --db state/backtest_qa.db \\
+	  --fail-on 2
+
+qa-backtest-report:
+	@$(PY) scripts/qa_daily_report.py

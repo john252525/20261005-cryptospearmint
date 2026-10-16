@@ -1,0 +1,13 @@
+{
+  "trades_count": 2,
+  "avg_trade_notional": 42050.0,
+  "total_fees": 42.05,
+  "fee_bps": 5.0,
+  "sharpe": 1.5,
+  "max_dd": 0.12,
+  "annual_vol": 0.15,
+  "win_rate": 0.55,
+  "years": 2.0,
+  "asset_class": "crypto",
+  "params": {"fee_bps": 5.0, "edge_type": "funding_carry"}
+}
