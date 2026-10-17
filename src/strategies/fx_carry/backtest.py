@@ -39,7 +39,8 @@ class Trade:
     fees: float
     net_pnl: float
     holding_days: int
-    carry_bps: float = 0.0   # annualised interest differential at entry
+    carry_bps: float = 0.0        # annualised interest differential at entry
+    ann_vol_pct: float = 0.0      # pair's 30d realised vol (annualised %) at entry
 
     @property
     def is_win(self) -> bool:
@@ -126,6 +127,7 @@ def run_backtest(prices: pd.DataFrame,
             fees=total_fees, net_pnl=net,
             holding_days=days_held,
             carry_bps=float(pos.carry_bps),
+            ann_vol_pct=float(pos.ann_vol_pct),
         ))
 
     rebalance_days = [d for d in dates if d.dayofweek == 0]  # Monday
@@ -232,7 +234,7 @@ def compute_metrics(equity: pd.Series, trades: List[Trade],
     gross_win = sum(t.net_pnl for t in trades if t.is_win)
     gross_loss = -sum(t.net_pnl for t in trades if not t.is_win)
     profit_factor = float(gross_win / gross_loss) if gross_loss > 0 else float("inf")
-    avg_vol = float(np.mean([t.holding_days for t in trades])) if n_trades else 0.0
+    avg_vol = float(np.mean([t.ann_vol_pct for t in trades])) if n_trades else 0.0
     return {
         "sharpe": round(sharpe, 4),
         "max_dd": round(max_dd, 4),
@@ -276,18 +278,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     for k, v in m.items():
         print(f"  {k}: {v}")
 
-    stamp = pd.Timestamp.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = pd.Timestamp.now('UTC').strftime("%Y%m%dT%H%M%SZ")
     mpath = os.path.join(s.results_dir, f"fx_carry_{stamp}.metrics.json")
     epath = os.path.join(s.results_dir, f"fx_carry_{stamp}.parquet")
     equity = res.equity
     if isinstance(equity.index, pd.DatetimeIndex) and equity.index.tz is not None:
         equity = equity.copy()
         equity.index = equity.index.tz_localize(None)
+    out_df = equity.to_frame("equity")
     try:
-        equity.to_parquet(epath)
+        out_df.to_parquet(epath)
     except Exception as exc:  # pragma: no cover
         print(f"[fx-carry] parquet write failed ({exc}); writing csv instead")
-        equity.to_csv(epath.replace(".parquet", ".csv"))
+        out_df.to_csv(epath.replace(".parquet", ".csv"))
     with open(mpath, "w") as fh:
         json.dump(m, fh, indent=2)
     print(f"[fx-carry] wrote {mpath}")
