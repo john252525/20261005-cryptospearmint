@@ -102,6 +102,10 @@ def run_backtest(prices: pd.DataFrame,
     def _close_position(pair: str, date: pd.Timestamp, price: float) -> None:
         nonlocal nav
         pos = positions.pop(pair)
+        if not (isinstance(price, (int, float)) and np.isfinite(price) and price > 0):
+            # No usable market price: exit flat at entry (no spot PnL, carry
+            # still accrues). Guarantees the slot is freed.
+            price = pos.entry_price
         gross = _pair_pnl_fraction(pos.direction, pos.entry_price, price) * pos.notional_usd
         # Carry accrued while holding: signed carry_bps annualised
         days_held = max((date - pos.entry_date).days, 0)
@@ -154,21 +158,23 @@ def run_backtest(prices: pd.DataFrame,
         active = active[: s.max_positions]
         target: Dict[str, FXCarrySignal] = {sg.pair: sg for sg in active}
 
-        # Close positions that are no longer targeted or flipped.
+        # Close positions that are no longer targeted or flipped. A position
+        # that cannot be priced is force-closed flat so a slot is always
+        # released (prevents concurrency from drifting above max_positions).
         for pair in list(positions.keys()):
             pos = positions[pair]
             sig = target.get(pair)
             need_close = sig is None or sig.direction != pos.direction
             if need_close:
                 p_now = price_row.get(pair, np.nan)
-                if not np.isfinite(p_now) or p_now <= 0:
-                    continue
-                _close_position(pair, date, float(p_now))
+                _close_position(pair, date, float(p_now) if np.isfinite(p_now) else float('nan'))
 
-        # Open new / resize existing.
+        # Open new / resize existing — hard cap at max_positions.
         for pair, sig in target.items():
             if pair in positions:
                 continue
+            if len(positions) >= s.max_positions:
+                break
             p_now = price_row.get(pair, np.nan)
             if not np.isfinite(p_now) or p_now <= 0:
                 continue
