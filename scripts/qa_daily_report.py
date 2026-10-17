@@ -103,6 +103,7 @@ def render(checks, metrics, day):
     for k, v in metrics.items():
         lines.append(f"| {k} | {v} |")
     lines.append("")
+    lines.append(_backtest_qa_section())
     return "\n".join(lines)
 
 
