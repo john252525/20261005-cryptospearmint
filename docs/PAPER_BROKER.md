@@ -77,3 +77,49 @@ Honest gaps - do not treat paper PnL as indicative:
 
 Real adapters (IBKR / Alpaca / Binance) will plug into the same
 Broker Protocol; the OMS + risk stack above assumes that contract.
+
+## Binance Testnet Adapter
+
+`brokers/binance_testnet.py` — skeleton adapter that connects to
+Binance Spot/Futures testnet. Two modes.
+
+### Mode 1 — no API keys
+
+- Public market data only, via `GET /api/v3/ticker/price`.
+- `market_price(symbol) -> float` calls Binance Spot testnet REST.
+- `is_authenticated()` returns `False`.
+- `account_status()` returns `{'authenticated': False}`.
+- Order lifecycle methods (`submit`, `cancel`, `positions`,
+  `flatten_all`, `stream_fills`, `reconcile`) raise
+  `NotImplementedError` with the message
+  `"BinanceTestnet: real orders require valid API keys — not yet implemented in this adapter"`.
+
+### Mode 2 — with API keys
+
+- Keys are read from `BINANCE_TESTNET_API_KEY` / `BINANCE_TESTNET_API_SECRET`
+  (or passed to the constructor).
+- `is_authenticated()` performs a signed `GET /api/v3/account` probe; if
+  the signature and `X-MBX-APIKEY` are valid, returns `True`.
+- `account_status()` returns a masked snapshot of the account (metadata
+  + `balance_count`; individual balance entries are not exposed).
+- Order lifecycle methods raise `NotImplementedError` with the message
+  `"Real order submission will be added in next iteration — currently the adapter verifies connectivity only"`.
+
+### Next iteration
+
+Real order submission via signed REST (`POST /api/v3/order`) plus a
+WebSocket user-data-stream for fill callbacks. Out of scope for this
+iteration; the current adapter exists only to verify connectivity and
+key handling.
+
+### How to test
+
+Mode 1 (no keys, market data only):
+
+    python -c "from brokers.binance_testnet import BinanceTestnetAdapter; a = BinanceTestnetAdapter(); print(a.is_authenticated()); print(a.market_price('BTCUSDT'))"
+
+Mode 2 (with keys, auth probe only):
+
+    BINANCE_TESTNET_API_KEY=... \
+    BINANCE_TESTNET_API_SECRET=... \
+    python -c "from brokers.binance_testnet import BinanceTestnetAdapter; a = BinanceTestnetAdapter(); print(a.is_authenticated()); print(a.account_status())"
