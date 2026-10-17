@@ -9,6 +9,8 @@ blocked in this VM by cgroup fs restrictions (details below).
 | Prometheus | 57447 | http://109.172.6.35:57447/ |
 | Grafana    | 36308 | http://109.172.6.35:36308/login  (admin/admin) |
 | Dashboard  | — | http://109.172.6.35:36308/d/trading-desk/ |
+| Demo dashboard | — | http://109.172.6.35:36308/d/paper-demo/ |
+| Demo exporter | 9101 | http://109.172.6.35:9101/metrics |
 | Exporter   | 9100 | http://109.172.6.35:9100/metrics |
 
 ## systemd units (all three under systemd)

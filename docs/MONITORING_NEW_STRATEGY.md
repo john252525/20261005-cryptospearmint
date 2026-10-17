@@ -279,3 +279,37 @@ Latency p50/p95/p99, Positions by symbol, Funding USD, Delta bps. Для
   `risk_drawdown_pct`, `risk_position_size_usd{symbol=...}`); расширение
   через `_GAUGE_BY_KEY`.
 - **systemd**: `pead-runner.service` — по шаблону шага 4.
+
+---
+
+## Paper Demo — reference install
+
+Demo runner живёт в `/root/risk_v0/demo_runner.py`. Разворачивается
+двумя systemd-юнитами:
+
+1. `trading-demo.service` — сам runner (DCA BTC, PaperBroker на localhost).
+2. `trading-demo-exporter.service` — exporter для demo-метрик на отдельном
+   порту `:9101` (чтобы не конфликтовать с общим `:9100`).
+
+Команды:
+
+    cp /root/trading-desk/infra/systemd/trading-demo.service /etc/systemd/system/
+    cp /root/trading-desk/infra/systemd/trading-demo-exporter.service /etc/systemd/system/
+    systemctl daemon-reload
+    systemctl enable --now trading-demo
+    systemctl enable --now trading-demo-exporter
+
+Проверка:
+
+    systemctl status trading-demo
+    systemctl status trading-demo-exporter
+    curl -s http://127.0.0.1:9101/metrics | head -20
+
+Dashboard:
+
+    http://109.172.6.35:36308/d/paper-demo/
+
+Использует тот же Prometheus (:57447), но target `127.0.0.1:9101` — job
+`paper-demo` уже добавлен в `infra/docker/prometheus/prometheus.yml`;
+для live-инстанса прометея добавить аналогичный блок в
+`/opt/prometheus/prometheus.yml` и `systemctl reload prometheus`.
