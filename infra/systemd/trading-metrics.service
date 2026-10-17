@@ -1,0 +1,23 @@
+[Unit]
+Description=Trading desk metrics exporter (:9100)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=trader
+Group=trader
+WorkingDirectory=/opt/trading-desk
+EnvironmentFile=-/opt/trading-desk/.env
+ExecStart=/opt/trading-desk/.venv/bin/python -m src.monitoring.http_exporter --port 9100 --interval 5
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/trading-desk/state /opt/trading-desk/logs
+
+[Install]
+WantedBy=multi-user.target

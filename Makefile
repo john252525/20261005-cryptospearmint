@@ -62,3 +62,17 @@ pipeline-nightly:
 pipeline-rollback:
 	@if [ -z "$(DATE)" ]; then echo "usage: make pipeline-rollback DATE=YYYY-MM-DD [APPLY=1]"; exit 2; fi
 	$(PYTHON) -m scripts.rollback --to-date $(DATE) $(if $(APPLY),,--dry-run)
+
+# -- monitoring --
+.PHONY: monitoring-up monitoring-down monitoring-logs metrics-server
+monitoring-up:
+	docker compose -f infra/docker/docker-compose.yml up -d
+
+monitoring-down:
+	docker compose -f infra/docker/docker-compose.yml down
+
+monitoring-logs:
+	docker compose -f infra/docker/docker-compose.yml logs -f --tail=100
+
+metrics-server:
+	$(PYTHON) -m src.monitoring.http_exporter --port 9100 --interval 5

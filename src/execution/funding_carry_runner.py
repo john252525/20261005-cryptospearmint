@@ -210,6 +210,17 @@ class FundingCarryRunner:
             await self._open(sg)
         await self._snapshot(signals)
 
+        # --- metrics hook (appended by monitoring rebuild) ---
+        try:
+            from src.monitoring.metrics import publish as _publish
+            _publish({
+                "kill_level": int(getattr(self, "kill_level", 0)),
+                "funding_accrued_usd": float(getattr(self, "funding_accrued_usd", 0.0)),
+                "delta_exposure_bps": float(getattr(self, "delta_exposure_bps", 0.0)),
+            })
+        except Exception:
+            pass
+
     async def _open(self, sig):
         notional = min(self.s.max_pos_per_symbol_usd,
                        self.pf.capital * self.s.target_leverage)

@@ -65,6 +65,7 @@ files = ["src", "scripts", "tests"]
 [[tool.mypy.overrides]]
 module = [
     "ccxt",
+    "prometheus_client",
     "pandas",
     "typer",
     "src.risk.kill_switch",

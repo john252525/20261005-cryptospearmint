@@ -11,3 +11,19 @@
 **Missing data.** `make data-audit` returns exit 1 with non-zero `gaps`, `dupes`, `non_monotonic` or `ohlc_violations`. Do not run backtest or QA on top of corrupt bars — downstream is blocked. Refetch against the exchange; if the gap is real exchange downtime, backfill from a secondary vendor and mark the range as `backfilled=true` in `data/raw/*.meta.json` so QA degrades confidence. Only when `data_audit.json` reports zeros across all bars do downstream targets reopen.
 
 **Funding reversal extended.** In `strategies/funding_carry`, the premise is positive funding on the short leg. If `funding_reversal_hours` stays above the threshold in `src/strategies/funding_carry/config.py` for more than two hours, the trade is negative carry plus market risk. Close both legs manually (`funding_carry_runner --flatten --reason funding_reversal`), write an incident to `data/kill_events.jsonl`, and add the affected symbols to `src/risk/limits.py::symbol_blocklist` for 24 hours. Do not wait for strategy logic — funding flips are risk events.
+
+## Monitoring
+
+Bring the stack up: `make monitoring-up` (prometheus :9090, grafana :3000).
+Start the metrics endpoint: `make metrics-server` or
+`systemctl --user start trading-metrics`. Tail container logs:
+`make monitoring-logs`. Tear down: `make monitoring-down`.
+
+Grafana: `http://localhost:3000` — dashboards under the `Trading` folder
+(provisioned from `infra/grafana/provisioning/dashboards/trading.json`).
+Prometheus: `http://localhost:9090` — targets page shows `trading-app`.
+
+If the target is DOWN in Prometheus, confirm the exporter is bound on the
+host (`curl -s localhost:9100/metrics | head`) and, on Linux, that the
+`172.17.0.1:9100` target matches your docker bridge gateway
+(`ip -4 addr show docker0`).
