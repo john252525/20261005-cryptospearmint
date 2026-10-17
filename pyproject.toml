@@ -65,19 +65,19 @@ files = ["src", "scripts", "tests"]
 [[tool.mypy.overrides]]
 module = [
     "ccxt",
-    "prometheus_client",
     "pandas",
+    "prometheus_client",
     "typer",
-    "src.risk.kill_switch",
     "qa.*",
     "src.qa.*",
     "src.strategies.*",
     "src.execution.*",
     "src.report.*",
     "src.paper.*",
-,
-          "src.monitoring.*",
-          "src.data.*"]
+    "src.monitoring.*",
+    "src.data.*",
+    "src.risk.kill_switch",
+]
 ignore_missing_imports = true
 ignore_errors = true
 
