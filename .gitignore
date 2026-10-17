@@ -34,3 +34,6 @@ backtest/results/SYNTH*
 backtest/results/SYNTH2*
 backtest/results/funding_carry_grid_*.csv
 backtest/results/funding_carry_grid_*.parquet
+
+# Funding-carry artifacts (extra)
+backtest/results/funding_distribution_*.csv
