@@ -3,7 +3,7 @@ services:
     image: prom/prometheus:v2.55.0
     container_name: trading-prometheus
     restart: unless-stopped
-    ports: ["9090:9090"]
+    ports: ["57447:9090"]
     volumes:
       - ./prometheus:/etc/prometheus:ro
       - prom-data:/prometheus
@@ -19,7 +19,7 @@ services:
     image: grafana/grafana:11.3.0
     container_name: trading-grafana
     restart: unless-stopped
-    ports: ["3000:3000"]
+    ports: ["36308:3000"]
     depends_on: [prometheus]
     environment:
       GF_SECURITY_ADMIN_USER:     admin
