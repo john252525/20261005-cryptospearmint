@@ -294,8 +294,8 @@ def main():
     p.add_argument("--symbols", type=str, default=None)
     p.add_argument("--synthetic", action="store_true")
     p.add_argument("--grid", action="store_true")
-    p.add_argument("--grid-min-funding", type=str, default="0.5,1.0,2.0,3.0,5.0")
-    p.add_argument("--grid-tier", type=str, default="vip0,vip1_bnb")
+    p.add_argument("--grid-min-funding", type=str, default="0.5,1.0,2.0,3.0,5.0,10.0")
+    p.add_argument("--grid-tier", type=str, default="vip0,vip1_bnb,vip4")
     a = p.parse_args()
     s = FundingCarrySettings()
     if a.days is not None:

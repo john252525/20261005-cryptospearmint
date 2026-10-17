@@ -19,7 +19,7 @@ class FundingCarrySettings(BaseSettings):
     max_pos_per_symbol_usd: float = 1000.0
     target_leverage: float = 1.0
 
-    fee_tier: Literal["vip0", "vip1_bnb"] = "vip0"
+    fee_tier: Literal["vip0", "vip1_bnb", "vip4"] = "vip0"
 
     poll_interval_sec: int = 30
     entry_cooldown_sec: int = 60
@@ -51,6 +51,9 @@ class FundingCarrySettings(BaseSettings):
         if self.fee_tier == "vip1_bnb":
             # estimate; requires verification against current Binance fee schedule
             spot_bps, perp_bps = 6.0, 3.0
+        elif self.fee_tier == "vip4":
+            # estimate; requires verification (VIP4 ~ $100M/mo volume tier)
+            spot_bps, perp_bps = 4.0, 2.0
         else:
             spot_bps = self.spot_taker_fee * 1e4
             perp_bps = self.perp_taker_fee * 1e4

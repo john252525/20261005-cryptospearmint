@@ -51,3 +51,11 @@ backtest-funding-grid:
 	$(PY) -m src.strategies.funding_carry.backtest --days 90 \
 		--symbols BTCUSDT,ETHUSDT,SOLUSDT --grid \
 		--grid-min-funding 0.5,1.0,2.0,3.0,5.0 --grid-tier vip0,vip1_bnb
+
+alt-universe-grid:
+	$(PY) -m src.strategies.funding_carry.backtest --days 90 --grid \
+		--grid-min-funding 0.5,1.0,2.0,3.0,5.0,10.0 --grid-tier vip0,vip1_bnb,vip4 \
+		--symbols BTCUSDT,ETHUSDT,SOLUSDT,DOGEUSDT,WIFUSDT,AVAXUSDT,LINKUSDT,ARBUSDT,OPUSDT
+
+funding-distribution:
+	$(PY) scripts/baseline_vs_alt.py --days 90
