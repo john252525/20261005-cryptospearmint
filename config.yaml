@@ -6,30 +6,31 @@ limits:
   max_drawdown_pct: 4.0
   max_single_symbol_pct: 20.0
   max_orders_per_minute: 30
-
 kill_switch:
   daily_loss_l1: 5000.0
   drawdown_l2: 4.0
   drawdown_l3: 6.0
   drawdown_l4: 8.0
-
 alerts:
   telegram:
     enabled: false
-    token: ""
-    chat_id: ""
+    token: ''
+    chat_id: ''
   email:
     enabled: false
-    smtp_host: ""
+    smtp_host: ''
     smtp_port: 587
-    username: ""
-    password: ""
-    to: ""
-
+    username: ''
+    password: ''
+    to: ''
 broker:
   type: paper
   initial_cash: 100000.0
   latency_ms: 50
-
+  slippage_bps: 2
+  spot_taker_fee: 0.001
+  perp_taker_fee: 0.0005
+  equity_commission_bps: 1
+  asset_class: spot
 storage:
   sqlite_path: risk.db
