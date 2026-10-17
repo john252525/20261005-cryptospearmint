@@ -42,7 +42,8 @@ def test_compute_carry_positive_diff():
 
 # 2 -----------------------------------------------------------------------
 def test_direction_long_high_yield():
-    s = FXCarrySettings(pairs=["NZDUSD=X"], min_carry_bps=50.0,
+    # 50 bps differential vs 40 bps threshold => clearly long (not a boundary).
+    s = FXCarrySettings(pairs=["NZDUSD=X"], min_carry_bps=40.0,
                         vol_filter_max_pct=1.5)
     r = _rates(NZD=5.5, USD=5.0)
     px = _flat_prices(["NZDUSD=X"], n=120, vol=0.0005, seed=3)

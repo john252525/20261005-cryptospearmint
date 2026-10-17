@@ -39,6 +39,7 @@ class Trade:
     fees: float
     net_pnl: float
     holding_days: int
+    carry_bps: float = 0.0   # annualised interest differential at entry
 
     @property
     def is_win(self) -> bool:
@@ -124,6 +125,7 @@ def run_backtest(prices: pd.DataFrame,
             gross_pnl=gross, carry_pnl=carry_pnl,
             fees=total_fees, net_pnl=net,
             holding_days=days_held,
+            carry_bps=float(pos.carry_bps),
         ))
 
     rebalance_days = [d for d in dates if d.dayofweek == 0]  # Monday
