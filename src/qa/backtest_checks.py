@@ -87,12 +87,36 @@ def _is_equity(metrics, trades):
 
 
 def _r(passed, value, threshold, msg):
-    return {"passed": bool(passed), "value": value, "threshold": threshold, "message": msg}
+    return {"passed": passed, "value": value,
+            "threshold": threshold, "message": msg}
 
 
 def check_look_ahead(metrics, trades, params):
-    if not trades:
+    tc = _pick(metrics, "trades_count", "n_trades", "n_fills")
+    tc_i = 0
+    if tc is not None:
+        try: tc_i = int(tc)
+        except (TypeError, ValueError): tc_i = 0
+    if len(trades) > tc_i:
+        tc_i = len(trades)
+    ac = str(metrics.get("asset_class") or "").lower()
+    known = ac in ("equity", "stock", "stocks", "adr",
+                   "crypto", "cryptocurrency", "perp", "perpetual", "futures")
+    if tc_i == 0:
         return _r(True, 0, 0, "n/a: no trades")
+    has_ts = False
+    for t in trades[:50]:
+        if any(t.get(k) is not None
+               for k in ("signal_ts", "fill_ts", "signal_bar", "fill_bar")):
+            has_ts = True
+            break
+    if not has_ts:
+        if known:
+            return _r(False, "missing_signal_ts", None,
+                      f"no signal/fill timestamps in trades; asset_class={ac}; "
+                      f"cannot verify look-ahead leakage (trades_count={tc_i})")
+        return _r(True, "unknown_class_skip", None,
+                  f"n/a: no timestamps, asset_class='{ac}' not in known set")
     min_ms = TH["lookahead_min_delay_ms"]
     bad_ts, bad_bar, n = [], [], 0
     for i, t in enumerate(trades):
@@ -104,11 +128,9 @@ def check_look_ahead(metrics, trades, params):
         sb, fb = t.get("signal_bar"), t.get("fill_bar")
         if sb is not None and fb is not None and int(fb) <= int(sb):
             bad_bar.append(i)
-    if n == 0 and not bad_bar:
-        return _r(True, 0, 0, "n/a: no signal/fill timestamps")
     bad = len(set(bad_ts) | set(bad_bar))
-    total = max(n, len(bad_bar), 1)
-    return _r(bad == 0, bad, 0, f"violations={bad}/{total} (fill <= signal)")
+    return _r(bad == 0, bad, 0, f"violations={bad} (fill <= signal)")
+
 
 
 def check_survivorship(metrics, trades, params):
@@ -120,7 +142,7 @@ def check_survivorship(metrics, trades, params):
     delisted = _pick(metrics, "delisted_count", "delisted_tickers_count", "n_delisted") or 0
     if years is None:
         return _r(True, None, None, "n/a: no horizon")
-    if float(years) < 3:
+    if float(years) < 3.0 - 0.05:
         return _r(True, delisted, 0, f"short horizon ({years}y)")
     if int(delisted) == 0:
         return _r(False, 0, ">0", f"no delisted tickers over {years}y")
@@ -165,20 +187,40 @@ def check_overfitting_signals(metrics, trades, params):
 
 
 def check_fee_consistency(metrics, trades, params):
-    fee_bps = _pick(params or {}, "fee_bps", "taker_fee_bps", "fee_bp") or \
-              _pick(metrics, "fee_bps", "taker_fee_bps")
+    # Only trust params.fee_bps / params.fee_schedule as independent source.
+    # Do not fall back to metrics.fee_bps - that value is usually derived from
+    # the very trades we're trying to verify (tautology).
+    fee_bps = _pick(params or {}, "fee_bps", "taker_fee_bps", "fee_bp")
+    if fee_bps is None and params and params.get("fee_schedule"):
+        venue = str(params.get("fee_schedule"))
+        sched = {"binance_spot": 10.0, "binance_usdm": 5.0,
+                 "binance_usdm_maker": 2.0,
+                 "bybit_spot": 10.0, "bybit_linear": 5.5,
+                 "bybit_linear_maker": 2.0}
+        fee_bps = sched.get(venue)
+        if fee_bps is None:
+            return _r(None, "unknown_fee_schedule", TH["fee_dev_pct"],
+                      f"params.fee_schedule='{venue}' not recognized")
     if fee_bps is None:
-        return _r(True, None, None, "n/a: no fee_bps")
-    reported = _pick(metrics, "total_fees", "fees_total", "total_fee_usd", "fees_usd")
+        return _r(None, "not_provided", TH["fee_dev_pct"],
+                  "fee_bps not independently provided "
+                  "(params.fee_bps or params.fee_schedule); "
+                  "consistency check is tautological")
+    reported = _pick(metrics, "total_fees", "fees_total",
+                     "total_fee_usd", "fees_usd")
     if reported is None or float(reported) == 0:
         return _r(False, None, TH["fee_dev_pct"], "no reported fees")
     if not trades:
-        return _r(True, 0.0, TH["fee_dev_pct"], f"reported={reported} traded=0")
+        return _r(True, 0.0, TH["fee_dev_pct"],
+                  f"reported={float(reported):.2f} traded=0 "
+                  f"(degenerate: no trades, cannot verify)")
     recomputed = sum(abs(float(t.get("qty", 0)) * float(t.get("price", 0)))
                      for t in trades) * float(fee_bps) / 1e4
     dev = abs(recomputed - float(reported)) / abs(float(reported)) * 100.0
     return _r(dev <= TH["fee_dev_pct"], round(dev, 3), TH["fee_dev_pct"],
-              f"fee_bps={fee_bps} recomputed={recomputed:.2f} reported={float(reported):.2f}")
+              f"fee_bps={fee_bps} recomputed={recomputed:.2f} "
+              f"reported={float(reported):.2f}")
+
 
 
 def check_fill_realism(metrics, trades, params):
@@ -281,7 +323,10 @@ CHECKS = {
 def run_backtest_checks(metrics, trades, params=None):
     metrics = dict(metrics or {})
     params = dict(params or {})
+    if params.get("asset_class") and not metrics.get("asset_class"):
+        metrics["asset_class"] = params["asset_class"]
     rows = _rows(trades)
+    is_eq = _is_equity(metrics, rows)
     out = {}
     for name, fn in CHECKS.items():
         try:
@@ -289,5 +334,11 @@ def run_backtest_checks(metrics, trades, params=None):
         except Exception as e:
             log.exception("check %s crashed", name)
             out[name] = _r(False, "exception", None, f"crash: {e}")
-        out[name]["severity"] = SEVERITY.get(name, "warning")
+        # dynamic severity: adjusted_prices critical only for equity
+        if name == "adjusted_prices" and is_eq:
+            out[name]["severity"] = "critical"
+        else:
+            out[name]["severity"] = SEVERITY.get(name, "warning")
     return out
+
+

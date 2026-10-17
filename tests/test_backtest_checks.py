@@ -200,3 +200,26 @@ def test_walk_forward_keeps_edge():
                       lambda a: {"sharpe": 1.8},
                       windows=[("a", "b"), ("c", "d")], metric="sharpe")
     assert wf["flag"] is False, wf
+
+def test_adjusted_prices_critical_for_equity():
+    m = {"years": 5.0}
+    trades = [{"symbol": "AAPL", "price": 100.0, "qty": 1.0}]
+    r = run_backtest_checks(m, trades, {"asset_class": "equity", "fee_bps": 5.0})
+    assert r["adjusted_prices"]["passed"] is False
+    assert r["adjusted_prices"]["severity"] == "critical"
+
+
+def test_survivorship_no_short_pause_for_2995y():
+    m = {"asset_class": "equity", "years": 2.995, "delisted_count": 0}
+    r = run_backtest_checks(m, [], {"fee_bps": 5.0})
+    assert r["survivorship"]["passed"] is False
+
+
+def test_look_ahead_fails_without_timestamps():
+    m = {"asset_class": "equity", "years": 1.0, "trades_count": 3}
+    trades = [{"symbol": "AAPL", "price": 100.0, "qty": 1.0},
+              {"symbol": "GOOGL", "price": 200.0, "qty": 1.0},
+              {"symbol": "MSFT", "price": 300.0, "qty": 1.0}]
+    r = run_backtest_checks(m, trades, {"fee_bps": 5.0})
+    assert r["look_ahead"]["passed"] is False
+    assert r["look_ahead"]["value"] == "missing_signal_ts"

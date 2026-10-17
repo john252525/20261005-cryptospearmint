@@ -39,7 +39,7 @@ logging.basicConfig(level=logging.INFO,
 # helpers
 # -----------------------------------------------------------
 def _res(passed, value, threshold, msg, severity="warning"):
-    return {"passed": bool(passed), "value": value, "threshold": threshold,
+    return {"passed": passed, "value": value, "threshold": threshold,
             "message": msg, "severity": severity}
 
 
@@ -201,24 +201,33 @@ def _check_grid_csv(csv_path: Path, fail_on: int) -> tuple[str, dict, int]:
 # -----------------------------------------------------------
 # output
 # -----------------------------------------------------------
-def _print_one(backtest_id: str, results: dict, fail_on: int) -> str:
-    passed = sum(1 for r in results.values() if r["passed"])
+def _print_one(backtest_id, results, fail_on):
+    passed = sum(1 for r in results.values() if r["passed"] is True)
     critical = [k for k, r in results.items()
-                if not r["passed"] and r.get("severity") == "critical"]
+                if r["passed"] is False and r.get("severity") == "critical"]
     warnings = [k for k, r in results.items()
-                if not r["passed"] and r.get("severity") != "critical"]
-    verdict = "FAIL" if (critical or len(warnings) >= fail_on) else "PASS"
+                if r["passed"] is False and r.get("severity") != "critical"]
+    soft = [k for k, r in results.items() if r["passed"] is None]
+    warn_total = warnings + soft
+    verdict = "FAIL" if (critical or len(warn_total) >= fail_on) else "PASS"
     icon = "✅" if verdict == "PASS" else ("❌" if critical else "⚠️ ")
-    suffix = f"  [CRITICAL: {critical}]" if critical else ""
-    print(f"{icon} {backtest_id}  {passed}/{len(results)} passed  → {verdict}{suffix}")
+    sfx = f"  [CRITICAL: {critical}]" if critical else ""
+    if soft and not critical:
+        sfx += f"  [warn: {soft}]"
+    print(f"{icon} {backtest_id}  {passed}/{len(results)} passed  → {verdict}{sfx}")
     for name, r in results.items():
         sev = r.get("severity", "warning")
-        if r["passed"]:
+        st = r["passed"]
+        if st is True:
             print(f"    ok   {name:24s} [{sev:8s}] value={r['value']}")
-        else:
+        elif st is False:
             print(f"    FAIL {name:24s} [{sev:8s}] value={r['value']} "
                   f"thr={r['threshold']} :: {r['message']}")
+        else:
+            print(f"    WARN {name:24s} [{sev:8s}] value={r['value']} "
+                  f"thr={r['threshold']} :: {r['message']}")
     return verdict
+
 
 
 def main() -> int:
@@ -255,12 +264,14 @@ def main() -> int:
         verdict = _print_one(bid, results, a.fail_on)
         verdicts[bid] = verdict
         critical = [k for k, r in results.items()
-                    if not r["passed"] and r.get("severity") == "critical"]
+                    if r["passed"] is False and r.get("severity") == "critical"]
         warnings = [k for k, r in results.items()
-                    if not r["passed"] and r.get("severity") != "critical"]
-        if critical or len(warnings) >= a.fail_on:
+                    if r["passed"] is False and r.get("severity") != "critical"]
+        soft = [k for k, r in results.items() if r["passed"] is None]
+        warn_total = warnings + soft
+        if critical or len(warn_total) >= a.fail_on:
             hard_fails.append({"backtest_id": bid,
-                               "critical": critical, "warnings": warnings})
+                               "critical": critical, "warnings": warn_total})
         if not a.no_registry:
             try:
                 record(bid, results, db_path=a.db, fail_threshold=a.fail_on)

@@ -35,10 +35,18 @@ def _connect(db_path: str) -> sqlite3.Connection:
 
 def record(backtest_id: str, results: dict, db_path: str = DEFAULT_DB,
            fail_threshold: int = 1, verdict: str | None = None) -> dict:
-    passed = sum(1 for r in results.values() if r["passed"])
-    failed = sum(1 for r in results.values() if not r["passed"])
+    passed = sum(1 for r in results.values() if r["passed"] is True)
+    failed = sum(1 for r in results.values() if r["passed"] is False)
+    soft_fail = sum(1 for r in results.values() if r["passed"] is None)
+    critical = sum(1 for r in results.values()
+                   if r["passed"] is False and r.get("severity") == "critical")
     if verdict is None:
-        verdict = "PASS" if failed < fail_threshold else "FAIL"
+        if critical > 0:
+            verdict = "FAIL"
+        elif failed + soft_fail >= fail_threshold:
+            verdict = "FAIL"
+        else:
+            verdict = "PASS"
     ts = _now()
     con = _connect(db_path)
     try:
