@@ -19,6 +19,18 @@ TH = {
 }
 _EDGE_EXEMPT = {"delta_neutral", "market_neutral", "arbitrage", "carry",
                 "funding_carry", "funding-carry", "basis", "cash_and_carry"}
+
+SEVERITY = {
+    "look_ahead":           "critical",
+    "survivorship":         "warning",
+    "adjusted_prices":      "warning",
+    "overfitting_signals":  "warning",
+    "fee_consistency":      "critical",
+    "fill_realism":         "warning",
+    "sharpe_sanity":        "warning",
+    "turnover_consistency": "warning",
+    "dd_vs_vol":            "warning",
+}
 _CRYPTO_SUFFIXES = ("USDT", "USDC", "BUSD", "DAI", "PERP", "USD", "-PERP", "/USDT")
 
 
@@ -277,4 +289,5 @@ def run_backtest_checks(metrics, trades, params=None):
         except Exception as e:
             log.exception("check %s crashed", name)
             out[name] = _r(False, "exception", None, f"crash: {e}")
+        out[name]["severity"] = SEVERITY.get(name, "warning")
     return out

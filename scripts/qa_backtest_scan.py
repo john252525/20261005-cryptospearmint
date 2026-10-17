@@ -38,8 +38,9 @@ logging.basicConfig(level=logging.INFO,
 # -----------------------------------------------------------
 # helpers
 # -----------------------------------------------------------
-def _res(passed, value, threshold, msg):
-    return {"passed": bool(passed), "value": value, "threshold": threshold, "message": msg}
+def _res(passed, value, threshold, msg, severity="warning"):
+    return {"passed": bool(passed), "value": value, "threshold": threshold,
+            "message": msg, "severity": severity}
 
 
 def _read_json(p: Path) -> dict:
@@ -90,13 +91,20 @@ def _load_trades(p: Path | None) -> list[dict]:
 # mode 1: metrics.json
 # -----------------------------------------------------------
 def _check_one_metrics(metrics_path: Path, fail_on: int) -> tuple[str, dict, int]:
-    metrics = _read_json(metrics_path)
+    raw = _read_json(metrics_path)
+    if isinstance(raw, dict) and "metrics" in raw:
+        metrics = raw["metrics"]
+        embedded_trades = raw.get("trades") or []
+        embedded_params = raw.get("params") or {}
+    else:
+        metrics = raw
+        embedded_trades, embedded_params = [], {}
     backtest_id = metrics_path.name.replace(".metrics.json", "")
-
-    trades_path = _find_sibling(metrics_path,
-                                [".trades.json", ".fills.json"])
-    trades = _load_trades(trades_path)
-    params = metrics.get("params") or {}
+    trades_path = _find_sibling(metrics_path, [".trades.json", ".fills.json"])
+    trades = _load_trades(trades_path) if trades_path else []
+    if not trades and isinstance(embedded_trades, list):
+        trades = embedded_trades
+    params = embedded_params or (metrics.get("params") if isinstance(metrics, dict) else None) or {}
     results = run_backtest_checks(metrics, trades, params)
     failed = sum(1 for r in results.values() if not r["passed"])
     return backtest_id, results, failed
@@ -129,7 +137,7 @@ def _check_grid_csv(csv_path: Path, fail_on: int) -> tuple[str, dict, int]:
         active = [v for v in net_pnl if v != 0.0]
         best_active = max(active) if active else 0.0
         results["positive_net_pnl"] = _res(
-            best > 0, round(best, 4), ">0",
+            best_active > 0, round(best_active, 4), ">0",
             f"best_active={best_active:.2f} best_all={best:.2f} "
             f"worst={worst:.2f} zeros={zeros}/{len(net_pnl)}")
     else:
@@ -195,15 +203,20 @@ def _check_grid_csv(csv_path: Path, fail_on: int) -> tuple[str, dict, int]:
 # -----------------------------------------------------------
 def _print_one(backtest_id: str, results: dict, fail_on: int) -> str:
     passed = sum(1 for r in results.values() if r["passed"])
-    failed = len(results) - passed
-    verdict = "PASS" if failed < fail_on else "FAIL"
-    icon = "✅" if verdict == "PASS" else ("⚠️ " if failed == 1 else "❌")
-    print(f"{icon} {backtest_id}  {passed}/{len(results)} passed  → {verdict}")
+    critical = [k for k, r in results.items()
+                if not r["passed"] and r.get("severity") == "critical"]
+    warnings = [k for k, r in results.items()
+                if not r["passed"] and r.get("severity") != "critical"]
+    verdict = "FAIL" if (critical or len(warnings) >= fail_on) else "PASS"
+    icon = "✅" if verdict == "PASS" else ("❌" if critical else "⚠️ ")
+    suffix = f"  [CRITICAL: {critical}]" if critical else ""
+    print(f"{icon} {backtest_id}  {passed}/{len(results)} passed  → {verdict}{suffix}")
     for name, r in results.items():
+        sev = r.get("severity", "warning")
         if r["passed"]:
-            print(f"    ok   {name:24s} value={r['value']}")
+            print(f"    ok   {name:24s} [{sev:8s}] value={r['value']}")
         else:
-            print(f"    FAIL {name:24s} value={r['value']} "
+            print(f"    FAIL {name:24s} [{sev:8s}] value={r['value']} "
                   f"thr={r['threshold']} :: {r['message']}")
     return verdict
 
@@ -234,26 +247,20 @@ def main() -> int:
     verdicts: dict[str, str] = {}
     hard_fails: list[dict] = []
 
-    for p in metrics_files:
-        bid, results, failed = _check_one_metrics(p, a.fail_on)
+    for p in metrics_files + grid_files:
+        if p.name.endswith(".metrics.json"):
+            bid, results, failed = _check_one_metrics(p, a.fail_on)
+        else:
+            bid, results, failed = _check_grid_csv(p, a.fail_on)
         verdict = _print_one(bid, results, a.fail_on)
         verdicts[bid] = verdict
-        if failed >= a.fail_on:
-            hard_fails.append({"backtest_id": bid, "failed": failed,
-                               "fails": [k for k, r in results.items() if not r["passed"]]})
-        if not a.no_registry:
-            try:
-                record(bid, results, db_path=a.db, fail_threshold=a.fail_on)
-            except Exception as e:
-                log.error("registry write for %s: %s", bid, e)
-
-    for p in grid_files:
-        bid, results, failed = _check_grid_csv(p, a.fail_on)
-        verdict = _print_one(bid, results, a.fail_on)
-        verdicts[bid] = verdict
-        if failed >= a.fail_on:
-            hard_fails.append({"backtest_id": bid, "failed": failed,
-                               "fails": [k for k, r in results.items() if not r["passed"]]})
+        critical = [k for k, r in results.items()
+                    if not r["passed"] and r.get("severity") == "critical"]
+        warnings = [k for k, r in results.items()
+                    if not r["passed"] and r.get("severity") != "critical"]
+        if critical or len(warnings) >= a.fail_on:
+            hard_fails.append({"backtest_id": bid,
+                               "critical": critical, "warnings": warnings})
         if not a.no_registry:
             try:
                 record(bid, results, db_path=a.db, fail_threshold=a.fail_on)
@@ -265,9 +272,14 @@ def main() -> int:
     n_fail = total - n_pass
     print(f"\n=== SUMMARY: {total} checked, {n_pass} passed, {n_fail} failed")
     if hard_fails:
-        print(f"=== HARD FAILS (>= {a.fail_on} checks):")
+        print("=== HARD FAILS:")
         for h in hard_fails:
-            print(f"    {h['backtest_id']}: {h['failed']} failed -> {h['fails']}")
+            parts = []
+            if h.get("critical"):
+                parts.append(f"critical={h['critical']}")
+            if h.get("warnings"):
+                parts.append(f"warnings={h['warnings']}")
+            print(f"    {h['backtest_id']}: {' / '.join(parts)}")
         return 1
     return 0
 
