@@ -76,3 +76,17 @@ monitoring-logs:
 
 metrics-server:
 	$(PYTHON) -m src.monitoring.http_exporter --port 9100 --interval 5
+
+# -- PEAD --
+.PHONY: backtest-pead backtest-pead-fast report-pead test-pead
+backtest-pead:
+	$(PY) -m src.strategies.pead.backtest --days 1095
+
+backtest-pead-fast:
+	$(PY) -m src.strategies.pead.backtest --days 365
+
+report-pead:
+	$(PY) -m src.report.pead_report --results-dir backtest/results
+
+test-pead:
+	$(PY) -m pytest tests/test_pead.py -q
