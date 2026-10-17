@@ -182,11 +182,17 @@ def run_backtest(prices: pd.DataFrame,
             p_now = price_row.get(pair, np.nan)
             if not np.isfinite(p_now) or p_now <= 0:
                 continue
-            entry_fee = 0.5 * cost_frac * notional_target
+            # Per-pair concentration cap: notional may not exceed
+            # max_pair_concentration_pct of *current* NAV.
+            cap = (s.max_pair_concentration_pct / 100.0) * max(nav, 0.0)
+            notional = min(notional_target, cap)
+            if notional <= 0:
+                continue
+            entry_fee = 0.5 * cost_frac * notional
             nav -= entry_fee
             entry_costs[pair] = entry_fee
             positions[pair] = Position(
-                pair=pair, direction=sig.direction, notional_usd=notional_target,
+                pair=pair, direction=sig.direction, notional_usd=notional,
                 entry_date=date, entry_price=float(p_now),
                 carry_bps=float(sig.carry_bps) if np.isfinite(sig.carry_bps) else 0.0,
                 ann_vol_pct=float(sig.ann_vol_pct) if np.isfinite(sig.ann_vol_pct) else 0.0,
@@ -291,6 +297,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception as exc:  # pragma: no cover
         print(f"[fx-carry] parquet write failed ({exc}); writing csv instead")
         out_df.to_csv(epath.replace(".parquet", ".csv"))
+    tpath = os.path.join(s.results_dir, f"fx_carry_{stamp}.trades.parquet")
+    if res.trades:
+        rows = [{
+            "pair": t.pair, "direction": t.direction,
+            "entry_date": pd.Timestamp(t.entry_date),
+            "exit_date": pd.Timestamp(t.exit_date),
+            "entry_price": t.entry_price, "exit_price": t.exit_price,
+            "notional_usd": t.notional_usd,
+            "gross_pnl": t.gross_pnl, "carry_pnl": t.carry_pnl,
+            "fees": t.fees, "net_pnl": t.net_pnl, "pnl": t.net_pnl,
+            "holding_days": t.holding_days,
+            "carry_bps": t.carry_bps, "ann_vol_pct": t.ann_vol_pct,
+        } for t in res.trades]
+        pd.DataFrame(rows).to_parquet(tpath)
+        print(f"[fx-carry] wrote {tpath}")
     with open(mpath, "w") as fh:
         json.dump(m, fh, indent=2)
     print(f"[fx-carry] wrote {mpath}")

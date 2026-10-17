@@ -40,11 +40,13 @@ class FXCarrySettings(BaseSettings):
             "SEK": "IR3TIB01SEM156N",
         }
     )
-    days: int = 1095  # ~3 years
+    days: int = 7300  # ~3 years
     min_carry_bps: float = 50.0  # min annualised interest differential (bps)
     vol_filter_lookback_days: int = 30
     vol_filter_max_pct: float = 1.5  # skip pair if vol > 1.5x cross-sectional median
     max_positions: int = 3
+    max_pair_concentration_pct: float = 40.0  # max % of current NAV per pair
+    rate_publication_lag_days: int = 45  # FRED monthly prints land mid-next-month
     risk_per_trade_pct: float = 25.0  # % NAV notional per pair
     commission_bps: float = 2.0
     slippage_bps: float = 3.0

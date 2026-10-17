@@ -126,10 +126,16 @@ def compute_vol_filter(prices_series: pd.Series, lookback: int = 30) -> float:
 
 
 def compute_carry(pair: str, rates_df: pd.DataFrame,
-                  as_of: Optional[pd.Timestamp] = None) -> dict:
+                  as_of: Optional[pd.Timestamp] = None,
+                  lag_days: int = 45) -> dict:
     """Interest differential for a pair, expressed as (base - quote) in bps.
 
     Positive carry_bps => base currency yields more => go long the pair.
+
+    FRED `IR3TIB01*M156N` rows are indexed at the *start* of the month they
+    describe and are published only around the middle of the following month.
+    Reading the month-M row on a date inside month M is therefore look-ahead,
+    so we shift the cut-off back by `lag_days` (default 45).
     """
     base, quote = PAIR_CCY[pair]
     if base not in rates_df.columns or quote not in rates_df.columns:
@@ -137,13 +143,16 @@ def compute_carry(pair: str, rates_df: pd.DataFrame,
                 "carry_bps": float("nan"), "rate_base": float("nan"),
                 "rate_quote": float("nan"), "direction": None}
 
+    cutoff = as_of - pd.Timedelta(days=int(lag_days)) if as_of is not None else None
     sub = rates_df[[base, quote]].dropna()
+    if cutoff is not None:
+        sub = sub.loc[:cutoff]
     if sub.empty:
         return {"pair": pair, "base_ccy": base, "quote_ccy": quote,
                 "carry_bps": float("nan"), "rate_base": float("nan"),
                 "rate_quote": float("nan"), "direction": None}
 
-    if as_of is not None:
+    if as_of is not None and cutoff is None:
         sub = sub.loc[:as_of]
         if sub.empty:
             return {"pair": pair, "base_ccy": base, "quote_ccy": quote,
@@ -211,7 +220,8 @@ def generate_signals(rates_df: pd.DataFrame, prices_df: pd.DataFrame,
 
     out: List[FXCarrySignal] = []
     for pair in s.pairs:
-        c = compute_carry(pair, rates_df, as_of=as_of)
+        c = compute_carry(pair, rates_df, as_of=as_of,
+                          lag_days=s.rate_publication_lag_days)
         carry_bps = c["carry_bps"]
         vol = vols.get(pair, float("nan"))
 
