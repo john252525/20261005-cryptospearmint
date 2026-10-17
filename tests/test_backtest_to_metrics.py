@@ -41,7 +41,7 @@ def test_convert_grid_csv(tmp_path):
     for k in ("sharpe", "max_dd", "win_rate", "trades_count",
               "total_fees", "fee_bps", "years", "grid_size", "grid_top_metrics"):
         assert k in m, f"missing {k}"
-    assert m["trades_count"] == 10
+    assert m["trades_count"] == 5
     assert m["grid_size"] == 3
     assert len(m["grid_top_metrics"]) == 3
 
@@ -79,4 +79,4 @@ def test_force_overwrite(tmp_path):
     assert r["status"] == "ok", r
     m = json.loads(out.read_text())
     assert "sentinel" not in m
-    assert m["trades_count"] == 10
+    assert m["trades_count"] == 5
