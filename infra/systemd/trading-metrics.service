@@ -1,23 +1,21 @@
 [Unit]
-Description=Trading desk metrics exporter (:9100)
+Description=Trading Metrics Exporter (:9100)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=trader
-Group=trader
-WorkingDirectory=/opt/trading-desk
-EnvironmentFile=-/opt/trading-desk/.env
-ExecStart=/opt/trading-desk/.venv/bin/python -m src.monitoring.http_exporter --port 9100 --interval 5
-Restart=on-failure
+User=root
+Group=root
+WorkingDirectory=/root/trading-desk
+Environment="PYTHONPATH=/root/trading-desk"
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStart=/usr/bin/python3 -m src.monitoring.http_exporter --port 9100 --interval 5
+Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
-NoNewPrivileges=true
-PrivateTmp=true
-ProtectSystem=strict
-ReadWritePaths=/opt/trading-desk/state /opt/trading-desk/logs
+SyslogIdentifier=trading-metrics
 
 [Install]
 WantedBy=multi-user.target
