@@ -47,3 +47,6 @@ journal/
 state/
 *.db
 *.sqlite*
+
+# fx-carry research artefacts
+data/*.parquet
