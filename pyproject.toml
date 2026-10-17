@@ -75,7 +75,9 @@ module = [
     "src.execution.*",
     "src.report.*",
     "src.paper.*",
-]
+,
+          "src.monitoring.*",
+          "src.data.*"]
 ignore_missing_imports = true
 ignore_errors = true
 

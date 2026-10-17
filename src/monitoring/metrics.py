@@ -58,12 +58,7 @@ def publish(state: dict[str, Any]) -> None:
                 risk_position_size_usd.labels(symbol=sym).set(float(v))
             except (TypeError, ValueError):
                 continue
-        try:
-            for metric in risk_position_size_usd._metrics:
-                if metric not in seen:
-                    risk_position_size_usd.labels(symbol=metric).set(0.0)
-        except Exception:  # noqa: BLE001
-            pass
+        _reset_stale_symbols(seen)
 
 
 def count_order(symbol: str, side: str, status: str) -> None:
@@ -77,3 +72,17 @@ def observe_order_latency(seconds: float) -> None:
         risk_order_latency_seconds.observe(float(seconds))
     except (TypeError, ValueError):
         pass
+
+
+def _reset_stale_symbols(seen: set[str]) -> None:
+    """Best-effort reset of labels absent from the current snapshot."""
+    try:
+        existing = list(risk_position_size_usd._metrics)  # type: ignore[attr-defined]
+    except Exception:  # noqa: BLE001
+        return
+    for metric in existing:
+        if metric not in seen:
+            try:
+                risk_position_size_usd.labels(symbol=metric).set(0.0)
+            except Exception:  # noqa: BLE001
+                pass
