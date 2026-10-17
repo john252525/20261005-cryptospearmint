@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 from .config import PEADSettings
-from .hedge import compute_hedge
+from .hedge import hedge_for_settings
 from .signal import (
     DIR_LONG,
     DIR_SHORT,
@@ -111,7 +111,8 @@ def _nav_from_positions(cash: float, positions: dict[str, Trade], prices: dict[s
             if len(sub) and not pd.isna(sub["Close"].iloc[-1]):
                 px = float(sub["Close"].iloc[-1])
         sign = 1.0 if tr.direction == DIR_LONG else -1.0
-        nav += sign * tr.shares * px
+        # NAV = cash + unrealized P&L (entry never debits cash; realized P&L added on close)
+        nav += sign * tr.shares * (px - tr.entry_price)
     return nav
 
 
@@ -197,7 +198,7 @@ def run_backtest(settings: PEADSettings, days: int | None = None) -> BacktestRes
             hsub = hedge_df[hedge_df.index.date == d]
             if len(hsub) and nav_now > 0:
                 hpx = float(hsub["Close"].iloc[0])
-                decision = compute_hedge(net_long, nav_now, settings.hedge_threshold_frac)
+                decision = hedge_for_settings(net_long, nav_now, settings)
                 target_hedge_val = decision.hedge_notional  # negative = short QQQ
                 # current hedge value (positive number = size of the short)
                 cur = 0.0
@@ -230,6 +231,14 @@ def run_backtest(settings: PEADSettings, days: int | None = None) -> BacktestRes
                 if sym in open_pos or sym in [p["symbol"] for p in pending]:
                     continue
                 if len(open_pos) >= settings.max_positions:
+                    continue
+                # earnings-season cap: limit concurrent earnings trades in the 30d window
+                window_start = d - timedelta(days=30)
+                in_window = sum(
+                    1 for t in open_pos.values()
+                    if t.symbol != settings.hedge_symbol and window_start <= t.entry_date <= d
+                )
+                if in_window >= settings.earnings_window_cap:
                     continue
                 df = prices.get(sym)
                 if df is None:

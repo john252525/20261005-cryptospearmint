@@ -32,6 +32,7 @@ class PEADSettings(BaseSettings):
     stop_loss_pct: float = 7.0
     max_positions: int = 10
     risk_per_trade_pct: float = 0.25
+    earnings_window_cap: int = 5  # max concurrent earnings trades in 30d window
 
     # costs (all in bps)
     allow_short: bool = True
@@ -40,7 +41,7 @@ class PEADSettings(BaseSettings):
     slippage_bps: float = 5.0
 
     # hedge
-    hedge_threshold_frac: float = 0.30  # net long > 30% NAV -> short QQQ
+    hedge_threshold_pct: float = 0.30  # net long > 30% NAV -> short QQQ
     hedge_symbol: str = "QQQ"
 
     # backtest

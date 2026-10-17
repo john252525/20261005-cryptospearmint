@@ -14,7 +14,7 @@ class HedgeDecision:
 def compute_hedge(
     net_long_notional: float,
     nav: float,
-    threshold_frac: float = 0.30,
+    threshold_frac: float,
 ) -> HedgeDecision:
     """If net long exposure exceeds threshold_frac of NAV, short the excess.
 
@@ -27,3 +27,8 @@ def compute_hedge(
         return HedgeDecision(False, 0.0, "within_threshold")
     excess = net_long_notional - threshold_frac * nav
     return HedgeDecision(True, -excess, "net_long_exceeds_threshold")
+
+
+def hedge_for_settings(net_long_notional: float, nav: float, settings) -> HedgeDecision:
+    """Apply the configured hedge threshold (settings.hedge_threshold_pct)."""
+    return compute_hedge(net_long_notional, nav, settings.hedge_threshold_pct)
