@@ -134,3 +134,72 @@ def test_win_pnl_formula(settings):
     fees = (1000.0 + 1100.0) * 6.0 / 1e4
     assert tr.pnl == pytest.approx(gross - fees)
     assert tr.borrow_cost == 0.0
+
+
+# 12. backtest determinism with frozen prices (no network)
+def _frozen_market(seed=7, n_days=60, symbols=("AAPL", "MSFT", "GOOGL", "QQQ")):
+    import numpy as np
+    import pandas as pd
+    rng = np.random.default_rng(seed)
+    idx = pd.bdate_range("2024-01-01", periods=n_days)
+    prices: dict[str, pd.DataFrame] = {}
+    for k, sym in enumerate(symbols):
+        base = 100.0 + k * 20
+        drift = rng.normal(0.0005, 0.001, n_days).cumsum()
+        close = base * (1 + drift)
+        o = close * (1 + rng.normal(0, 0.001, n_days))
+        h = np.maximum(o, close) * (1 + np.abs(rng.normal(0, 0.002, n_days)))
+        l = np.minimum(o, close) * (1 - np.abs(rng.normal(0, 0.002, n_days)))
+        v = rng.integers(1_000_000, 2_000_000, n_days).astype(float)
+        prices[sym] = pd.DataFrame(
+            {"Open": o, "High": h, "Low": l, "Close": close, "Volume": v},
+            index=idx,
+        )
+    vc = prices["AAPL"].columns.get_loc("Volume")
+    prices["AAPL"].iloc[30, vc] = 5_000_000.0
+    sig_date = idx[30].date()
+    earnings = pd.DataFrame(
+        [
+            {
+                "symbol": "AAPL",
+                "earnings_date": sig_date,
+                "eps_estimate": 1.0,
+                "eps_actual": 1.15,
+                "surprise_pct": 15.0,
+            }
+        ]
+    )
+    return prices, earnings
+
+
+def test_backtest_deterministic_with_frozen_prices(settings):
+    from src.strategies.pead.backtest import run_backtest
+
+    settings = settings.model_copy(update={"universe": ["AAPL", "MSFT", "GOOGL"]})
+    prices, earnings = _frozen_market()
+    end_date = prices["AAPL"].index[-1].date()
+    start = prices["AAPL"].index[0].date()
+    days = (end_date - start).days + 1
+
+    r1 = run_backtest(settings, days=days, prices=prices, earnings=earnings, end_date=end_date)
+    r2 = run_backtest(settings, days=days, prices=prices, earnings=earnings, end_date=end_date)
+
+    assert abs(r1.metrics["final_nav"] - r2.metrics["final_nav"]) < 1e-6
+    assert abs(r1.metrics["sharpe"] - r2.metrics["sharpe"]) < 1e-9
+
+
+# 13. booking invariant flag
+def test_booking_invariant(settings, monkeypatch):
+    from src.strategies.pead import backtest as _bt
+
+    monkeypatch.setattr(_bt, "_BOOKING_INVARIANT", True)
+    settings = settings.model_copy(update={"universe": ["AAPL", "MSFT", "GOOGL"]})
+    prices, earnings = _frozen_market()
+    end_date = prices["AAPL"].index[-1].date()
+    start = prices["AAPL"].index[0].date()
+    days = (end_date - start).days + 1
+
+    # any invariant violation raises AssertionError inside run_backtest
+    r = _bt.run_backtest(settings, days=days, prices=prices, earnings=earnings, end_date=end_date)
+    assert r.metrics is not None
+    assert r.metrics["trades_count"] >= 0

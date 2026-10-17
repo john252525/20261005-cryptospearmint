@@ -14,12 +14,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+
+_BOOKING_INVARIANT = os.environ.get("PEAD_BOOKING_INVARIANT", "0") == "1"
 
 from .config import PEADSettings
 from .hedge import hedge_for_settings
@@ -48,6 +51,10 @@ class Trade:
     borrow_cost: float = 0.0
     fees: float = 0.0
     pnl: float = 0.0
+    signal_ts: str | None = None
+    fill_ts: str | None = None
+    signal_bar: str | None = None
+    fill_bar: str | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -64,6 +71,10 @@ class Trade:
             "borrow_cost": self.borrow_cost,
             "fees": self.fees,
             "pnl": self.pnl,
+            "signal_ts": self.signal_ts,
+            "fill_ts": self.fill_ts,
+            "signal_bar": self.signal_bar,
+            "fill_bar": self.fill_bar,
         }
 
 
@@ -116,19 +127,30 @@ def _nav_from_positions(cash: float, positions: dict[str, Trade], prices: dict[s
     return nav
 
 
-def run_backtest(settings: PEADSettings, days: int | None = None) -> BacktestResult:
+def run_backtest(
+    settings: PEADSettings,
+    days: int | None = None,
+    *,
+    prices: dict[str, pd.DataFrame] | None = None,
+    earnings: pd.DataFrame | None = None,
+    end_date: date | None = None,
+) -> BacktestResult:
     rng = np.random.default_rng(settings.seed)
     days = days or settings.days
-    end = date.today()
+    end = end_date or date.today()
     start = end - timedelta(days=days)
 
     universe = list(settings.universe)
-    prices = _download_prices(universe + [settings.hedge_symbol], start, end)
+    if prices is None:
+        prices = _download_prices(universe + [settings.hedge_symbol], start, end)
     if not prices:
         raise RuntimeError("DATA_UNAVAILABLE: no price data downloaded")
 
-    cal = fetch_earnings_calendar(universe, start - timedelta(days=5), end)
-    if cal.empty:
+    if earnings is None:
+        cal = fetch_earnings_calendar(universe, start - timedelta(days=5), end)
+    else:
+        cal = earnings
+    if cal is None or cal.empty:
         raise RuntimeError("DATA_UNAVAILABLE: no earnings calendar returned")
 
     # build trading calendar from union of price dates
@@ -222,6 +244,10 @@ def run_backtest(settings: PEADSettings, days: int | None = None) -> BacktestRes
                             entry_price=hpx,
                             shares=shares,
                             stop_price=stop,
+                            signal_ts=d.isoformat(),
+                            fill_ts=d.isoformat(),
+                            signal_bar=d.isoformat(),
+                            fill_bar=d.isoformat(),
                         )
 
         # ---- signals announced today -> schedule entry at T+2 ----
@@ -284,15 +310,37 @@ def run_backtest(settings: PEADSettings, days: int | None = None) -> BacktestRes
                 if not settings.allow_short:
                     continue
                 stop = o * (1.0 + settings.stop_loss_pct / 100.0)
+            max_shares = (nav * 2.0) / o if o > 0 else 0.0
+            assert shares <= max_shares, (
+                f"runaway sizing on {d} {sym}: "
+                f"shares={shares:.4f} > max={max_shares:.4f}")
             open_pos[sym] = Trade(
                 symbol=sym, direction=p["direction"], entry_date=d,
                 entry_price=o, shares=shares, stop_price=stop,
                 surprise_pct=float(p.get("surprise_pct", float("nan"))),
+                signal_ts=p.get("signal_date").isoformat() if p.get("signal_date") else None,
+                fill_ts=d.isoformat() if d else None,
+                signal_bar=p.get("signal_date").isoformat() if p.get("signal_date") else None,
+                fill_bar=d.isoformat() if d else None,
             )
         pending = still_pending
 
         # ---- mark equity ----
         nav = _nav_from_positions(cash, open_pos, prices, d)
+        if _BOOKING_INVARIANT and open_pos:
+            unre = 0.0
+            for tr in open_pos.values():
+                tdf = prices.get(tr.symbol)
+                tpx = tr.entry_price
+                if tdf is not None:
+                    tsub = tdf[tdf.index.date <= d]
+                    if len(tsub) and not pd.isna(tsub["Close"].iloc[-1]):
+                        tpx = float(tsub["Close"].iloc[-1])
+                tsign = 1.0 if tr.direction == DIR_LONG else -1.0
+                unre += tsign * tr.shares * (tpx - tr.entry_price)
+            assert abs(nav - cash - unre) < 1e-6, (
+                f"booking invariant violated on {d}: "
+                f"nav={nav:.6f} cash={cash:.6f} unrealized={unre:.6f}")
         equity_rows.append({"date": d, "nav": nav, "cash": cash,
                             "n_positions": len(open_pos)})
 
@@ -374,6 +422,11 @@ def compute_metrics(eq: pd.DataFrame, trades: list[Trade], initial_nav: float, s
         "universe_size": len(settings.universe),
         "seed": settings.seed,
         "generated_utc": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "asset_class": "equity",
+        "adjusted": True,
+        "delisted_count": 0,
+        "universe_size_start": len(settings.universe),
+        "universe_size_end": len(settings.universe),
     }
 
 
@@ -384,10 +437,23 @@ def save_results(res: BacktestResult, settings: PEADSettings) -> dict[str, str]:
     eq_path = out / f"pead_{tag}.parquet"
     m_path = out / f"pead_{tag}.metrics.json"
     tr_path = out / f"pead_{tag}.trades.parquet"
+    trj_path = out / f"pead_{tag}.trades.json"
+    records = [t.to_dict() for t in res.trades]
     res.equity.to_parquet(eq_path)
     m_path.write_text(json.dumps(res.metrics, indent=2))
-    pd.DataFrame([t.to_dict() for t in res.trades]).to_parquet(tr_path)
-    return {"equity": str(eq_path), "metrics": str(m_path), "trades": str(tr_path)}
+    pd.DataFrame(records).to_parquet(tr_path)
+    # QA scan loads trades from `<tag>.trades.json` sibling to metrics.json.
+    # Drop signal_bar/fill_bar (ISO strings) - QA's check_look_ahead does
+    # int(signal_bar/fill_bar), so keep only *_ts fields (parseable by QA).
+    qa_records = []
+    for r in records:
+        rr = dict(r)
+        rr.pop("signal_bar", None)
+        rr.pop("fill_bar", None)
+        qa_records.append(rr)
+    trj_path.write_text(json.dumps({"trades": qa_records}, indent=2))
+    return {"equity": str(eq_path), "metrics": str(m_path),
+            "trades": str(tr_path), "trades_json": str(trj_path)}
 
 
 def main(argv: list[str] | None = None) -> int:

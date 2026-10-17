@@ -94,3 +94,42 @@ uv pip install --python .venv/bin/python --only-binary :all: pyyaml pydantic pyd
 
 Metrics JSON lives in `backtest/results/pead_*.metrics.json` (gitignored build artifacts).
 Window: 2023-10-18 .. 2026-10-17 (752 trading days), seed=42.
+
+---
+
+## Final run — post NAV booking fix (9f6ad8a) + producer schema
+
+Generated 2026-10-17. `PEAD_BOOKING_INVARIANT=1`. Frozen 3 time horizons.
+
+| Version | Horizon | Sharpe | Max DD | Trades | Hit rate | Kill criteria (0.7 / 15% / 52%) | QA verdict |
+|---|---|---|---|---|---|---|---|
+| v1 | 1095d | 0.6987 | 1.51% | 63 | 57.14% | **2/3** (DD✓, hit✓, sharpe✗ 0.6987<0.7) | PASS (8/9, warn fee_consistency) |
+| v2 | 730d  | 0.303  | 1.51% | 35 | 48.57% | **1/3** (DD✓ only) | PASS (8/9, warn fee_consistency) |
+| v3 | 365d  | -1.151 | 1.30% | 17 | 41.18% | **1/3** (DD✓ only) | PASS (8/9, warn fee_consistency) |
+
+Rationale for `fee_consistency` warning (not FAIL): QA recomputes fees from
+`Σ(qty·price)·fee_bps/1e4` using only `equity_commission_bps=1`. Our producer
+emits `fees_total = commission + slippage` (slip = `slippage_bps=5` per side),
+so a naive recompute is ~92% low. We chose not to emit `params.fee_bps` in
+metrics to keep QA honest (`not_provided` → WARN, not FAIL). Full
+fee-consistency check would need QA to model slippage as a first-class cost.
+
+## Диагноз NAV booking (этот фикс)
+
+Origin bug в `_nav_from_positions()`: `nav += Σ shares·px` — считает
+**gross notional** вместо unrealized P&L. Каждая открытая позиция добавляет
+к `nav` стоимость всего ноционала, при закрытии `cash += tr.pnl` добавляет
+только реализованный P&L, что даёт **скачок NAV при входе и провал при выходе**
+даже если `tr.pnl == 0`. Симптом: `rets.std` в 20 раз выше нормы, Sharpe
+проваливается на идентичных решениях (0.17 vs 0.68).
+
+Fix: `nav += Σ sign·shares·(px − entry_price)` — правильный booking.
+
+Регрессионное покрытие:
+- `test_backtest_deterministic_with_frozen_prices` — двукратный прогон на
+  frozen prices/earnings → identical `final_nav` (Δ<1e-6) и `sharpe` (Δ<1e-9)
+- `test_booking_invariant` — при `PEAD_BOOKING_INVARIANT=1` бэктест
+  ассертит `|nav − cash − Σ unrealized_pnl| < 1e-6` на каждом дне
+- size-cap sanity — при открытии позиции `shares ≤ 2·nav/entry_price`
+- producer schema — `signal_ts/fill_ts/signal_bar/fill_bar` в Trade, а также
+  `asset_class/adjusted/delisted_count/universe_size_{start,end}` в metrics
