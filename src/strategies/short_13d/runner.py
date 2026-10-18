@@ -30,11 +30,12 @@ def run_snapshot() -> dict:
     print(f'filings since {cutoff}: {len(rows)}')
     if not rows:
         print('NO FILINGS IN WINDOW')
-        return {'opened': 0, 'skipped': 0, 'reason': 'no_filings'}
+        return {'opened': 0, 'skipped': 0, 'duplicates': 0, 'reason': 'no_filings'}
 
     conn = init_db(s.state_db)
     opened = 0
     skipped = 0
+    duplicates = 0
     tickers = list(set(r[0] for r in rows))
     if len(tickers) > 100:
         tickers = tickers[:100]
@@ -44,7 +45,7 @@ def run_snapshot() -> dict:
                            progress=False, auto_adjust=True, group_by='ticker')
     except Exception as e:
         print('bulk error', str(e)[:200])
-        return {'opened': 0, 'skipped': 0, 'reason': f'bulk_error: {e}'}
+        return {'opened': 0, 'skipped': 0, 'duplicates': 0, 'reason': f'bulk_error: {e}'}
 
     for tk, fdate in rows:
         if tk not in tickers:
@@ -92,6 +93,9 @@ def run_snapshot() -> dict:
                     'borrow_rate': br,
                     'created_at': datetime.now(timezone.utc).isoformat(),
                 })
+                if pid is None:
+                    duplicates += 1
+                    continue
                 journal_append(s.journal_path, {
                     'event': 'OPEN', 'pid': pid, 'ticker': tk,
                     'filing_date': fdate,
@@ -106,8 +110,8 @@ def run_snapshot() -> dict:
             skipped += 1
 
     conn.close()
-    print(f'DONE opened={opened} skipped={skipped}')
-    return {'opened': opened, 'skipped': skipped, 'filings': len(rows)}
+    print(f'DONE opened={opened} duplicates={duplicates} skipped={skipped}')
+    return {'opened': opened, 'duplicates': duplicates, 'skipped': skipped, 'filings': len(rows)}
 
 
 if __name__ == '__main__':
