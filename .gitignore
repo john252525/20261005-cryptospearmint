@@ -47,3 +47,12 @@ journal/
 state/
 *.db
 *.sqlite*
+
+# ── scraper runtime (SEC pipeline)
+state/*.db
+state/*.db-wal
+state/*.db-shm
+data/*.json
+data/event_filings.db
+*.db-wal
+*.db-shm
