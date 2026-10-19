@@ -109,8 +109,10 @@ to you" with a date attached.
 
 ## Five Priority Vendors
 
-Ranked from docs/structural-edge/VENDOR_SHORTLIST.md. Note: Earnest Analytics is rated
-HIGH in that source document.
+Ranked from docs/structural-edge/VENDOR_SHORTLIST.md. Note: VENDOR_SHORTLIST.md rates Earnest Analytics HIGH; it is ranked MEDIUM here because
+its panel is smaller and its pricing is unquoted, so it is the cheaper fallback rather
+than a first-round target. The two documents disagree deliberately; this one governs
+outreach order.
 
 | Rank | Vendor | Category | Public cost signal | Contact priority | Reason |
 |------|--------|----------|--------------------|------------------|--------|
@@ -118,7 +120,7 @@ HIGH in that source document.
 | 2 | Spire Global (NYSE: SPIR) | AIS + satellite | $300k-1M/yr | HIGH | Public company (audited financials, contract disclosure); satellite AIS coverage complements terrestrial |
 | 3 | Kpler | Commodity flow | $200k-1M/yr | HIGH | Deepest commodity trade-flow modelling; analytics-only exclusivity is offered, which matches our derived-signal model |
 | 4 | Consumer Edge | US card panel | $500k-2M/yr | HIGH | Slice-based exclusivity with MFN as standard; US panel clean under CCPA; clearest exclusivity path |
-| 5 | Earnest Analytics | US card alt | contact for quote | HIGH | Direct-to-fund distribution with custom slices; smaller than Consumer Edge, so more likely to grant real exclusivity |
+| 5 | Earnest Analytics | US card alt | contact for quote | MEDIUM | Direct-to-fund distribution with custom slices; smaller than Consumer Edge, so more likely to grant real exclusivity |
 
 Concentration note: ranks 1 and 3 are the same corporate group (Kpler acquired
 MarineTraffic in 2023). Approach them as one negotiation, not two, and use the
