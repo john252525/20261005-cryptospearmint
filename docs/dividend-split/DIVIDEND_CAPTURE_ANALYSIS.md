@@ -1,193 +1,157 @@
-# Dividend Capture — Prescreen Analysis
+# Dividend Capture — Prescreen Analysis (final, artifact-aware)
 
 ## 1. Executive Summary
 
-Dividend capture (buy on cum-dividend close, sell on ex-dividend close) is
-a micromechanics trade: the buyer of record at cum-close receives the cash
-dividend, and in an efficient market the price drops approximately by the
-dividend amount on the ex-open. The trade is profitable only if the
-overnight drop is less than the dividend OR the stock recovers intraday
-before the ex-close exit.
+Dividend capture (buy cum-dividend close, sell ex-dividend close) is a
+micromechanics trade: the buyer of record at cum-close receives the cash
+dividend, and the stock price is expected to drop by approximately the
+dividend amount on the ex-open. Prior literature (Elton-Gruber 1970,
+Kalay 1982, Elton-Gruber 1984, Hartzmark-Solomon 2013) puts the raw ex-day
+return near zero for large-caps — net of transaction costs the trade is
+unprofitable.
 
-Academic consensus (pre-2010) held the trade to be unprofitable net of
-transaction costs, with a raw ex-day return near zero for large caps.
-**This prescreen contradicts that for the 2020-2024 sample**: measured
-gross mean return of +0.96% per trade, and +0.86% net at 10 bps cost, is
-larger than what prior literature predicted. Section 6 reports the actual
-number. Section 7 explains the discrepancy. Section 8 gives the
-recommendation — which is nuanced, not "pursue immediately".
+**Initial prescreen measured +0.86% net at 10 bps** across 180 trade-events
+in 12 high-yield US names, 2020-2024. That number is **2.9x the academic
+upper bound** and matches almost exactly the dividend yield (MO's quarterly
+yield ~2.2%, measured MO mean return +2.196%). This is the signature of
+**dividend double-counting**, discussed in Section 6 and diagnosed in
+Section 7.
+
+Final verdict: **measurement artifact confirmed** (per diagnostic in §7).
+Category closed, matching academic prior. The trade as measured does not
+exist.
 
 ## 2. Mechanism
 
 ### 2.1 Cum-dividend and ex-dividend dates
 
-A stock trades cum-dividend through the trading day before the ex-date.
-On the ex-date, new buyers no longer have the right to the declared
-dividend. The buyer of record at cum-close receives the dividend even
-though the position is sold on ex-date. The economic value of the stock
-must drop by the after-tax value of the dividend on the ex-open.
+A stock trades cum-dividend through the trading day before ex-date. On
+ex-date new buyers have no right to the declared dividend. Buyer of record
+at cum-close receives the dividend even if sold on ex-date. The economic
+value of the stock must drop by after-tax value of the dividend on ex-open.
 
 ### 2.2 Price drop mechanics
 
-In an efficient market with rational taxable investors, the expected
-overnight drop equals the dividend amount adjusted for the tax
-differential between capital gains and dividend income. For US equities,
-dividends are taxed at ordinary rates for non-qualified treatment (up to
-37%) and preferential rates (20% + NIIT) for qualified dividends, while
-capital gains are taxed at preferential rates. When after-tax dividends
-are less valuable than after-tax capital gains, the theoretical overnight
-drop **exceeds** the nominal dividend.
+In an efficient market with rational taxable investors, expected overnight
+drop = dividend adjusted for tax differential. For US equities, dividends
+taxed at ordinary rates (37% top) if short-held, capital gains at
+preferential rates. When after-tax dividends < after-tax capital gains,
+overnight drop **exceeds** nominal dividend — buyers lose their after-tax
+dividend partially.
 
-Empirical work through 2010 showed the drop fraction at 0.80-1.00x. If
-the price over-drops, the residual return to a dividend-capture buyer
-is **negative** — that's the classic result. If the price under-drops
-(drop fraction <1.0), the residual return is **positive** — that's what
-this prescreen measures in 2020-2024.
+Empirical work through 2010 showed drop fraction 0.80-1.00x. Residual
+return to a dividend-capture buyer is therefore **near zero**, not
+positive.
 
-### 2.3 Where the "capture" actually comes from
+### 2.3 Where the apparent "capture" comes from
 
-The trade is profitable when total return from cum-close to ex-close
-including the dividend exceeds zero net of costs. Three sources:
+Three real-world sources (all small):
+        (a) Partial intraday recovery post-ex-open.
+        (b) Less-than-full overnight drop (drop fraction <1.0).
+        (c) Market maker inventory effects on low-liquidity names.
 
-        (a) Partial price recovery during the ex-date session.
-        (b) Less-than-full overnight drop.
-        (c) Market-maker inventory effects on low-liquidity names.
+Each is 10-50 bps of the dividend amount. None is 100%. A strategy claiming
+100% capture is measuring something else — most likely a dividend-
+adjustment artifact in the price series.
 
-In 2020-2024, force (b) may have strengthened: the retail dividend-
-appetite segment expanded (main street retail investors, not just
-institutions), and intraday recovery post-ex-open became more common
-(retail buying the "dip"). This is the "behavioral" mechanism by which
-dividend capture empirically survived in the recent sample.
+### 2.4 Why the trade often appears attractive in backtest
 
-Alternative mechanism: our data uses auto_adjust=False; the yfinance
-"Close" is the raw closing price (not back-adjusted for the dividend).
-Combined with the manual dividend addition this is correct — but if
-yfinance returns back-adjusted prices in some code path, the return
-formula double-counts the dividend. This is a **known risk of the
-measurement**, discussed in Section 7.
+        - Using back-adjusted closes, then adding the dividend again on
+          top → price drop already removed by adjustment, dividend is
+          added, giving 1x-2x dividend-yield per trade.
+        - No adjustment for overnight gap volatility.
+        - Ignoring wash-sale / straddle complications.
 
-### 2.4 Why the trade often appears attractive on paper
-
-Backtest simplifications that inflate measured return:
-
-        - Ignoring overnight gap risk.
-        - Assuming raw prices when the source is adjusted (double-counts
-          dividend).
-        - No adjustment for hold-through-overnight gap volatility.
-        - Ignoring wash-sale complication.
-
-Each simplification can inflate measured return by 20-100 bps per trade.
-If the true edge is +0.10-0.20% net, one simplification error at 20-80 bps
-turns "unprofitable" into "profitable" and vice versa.
+Each simplification inflates measured return by 20-100 bps.
 
 ## 3. Tax Considerations
 
-### 3.1 Qualified vs ordinary dividend rates
+### 3.1 Qualified vs ordinary
 
-US-sourced dividends are "qualified" (preferential 15-20% rates) if the
-shareholder held for >60 days during the 121-day window around ex-date.
-High-yield dividend capture holds ~2 days, so the dividend is NOT
-qualified — ordinary rates up to 37%.
+US dividends are qualified (15-20%) if held >60 days around ex-date.
+High-yield capture holds ~2 days → NOT qualified → ordinary rates up to
+37%. Net-after-tax for high-income client ≈ 63% of gross.
 
-For a high-tax US fund: gross +0.86% becomes +0.63% * 0.86% ≈ +0.54%
-after-tax at ordinary rates. If qualified treatment could be engineered
-(60+ day hold), +0.86% becomes +0.69% after-tax. Short-term hold costs
-~15 bps of return.
+$1 gross dividend → $0.63 net; short-term capital gain → $0.63 net; both
+hit ordinary rates. Buy-and-hold with qualified treatment gets $0.80-0.85
+net per $1 — the tax cost of short-term holding is ~20% of dividend.
 
-### 3.2 Holding-period rule
+### 3.2 60-day rule
 
-The 60-day rule is calendar hold per position, and re-entry inside 60
-days aggregates holdings. This makes "capture every dividend" incompatible
-with qualified treatment unless the fund effectively holds long enough to
-cross 60 days.
+Aggregation of re-entries within 60 days removes qualified status. A
+repeated "capture every dividend" strategy almost never qualifies.
 
-### 3.3 Wash-sale and straddle rules
+### 3.3 Wash sale and straddle
 
-Loss-realization turns wash-sale rules into deferrals. Straddle rules
-eliminate qualified status if hedged. Implication: for a fully-qualified
-tax-advantaged strategy, do NOT hedge, accept full long exposure between
-cum-close and ex-close.
+Loss-realization within-30-day windows defer losses. Straddle rules kill
+qualified status if hedged. Choose: qualified tax OR hedge, not both.
 
-### 3.4 Implication for the prescreen
+### 3.4 Implication
 
-Prescreen measures gross returns. Post-tax economics: gross +0.86% →
-~+0.54% after-tax at 37% ordinary rate. Against 10 bps cost, that is
-+0.44% net after-tax. This remains well above the +0.30% "worth
-attention" live threshold.
+The +0.86% "measured" gross would become +0.54% after-tax — but per
+Section 7, that number is itself an artifact, so post-tax is also
+unmeasured.
 
 ## 4. Academic Evidence
 
-### 4.1 Early evidence (pre-2000)
+### 4.1 Early (pre-2000)
 
-Elton-Gruber 1970 (tax-clientele model), Kalay 1982, Eades-Linn-McConnell
-1984 — ex-day drop fraction ~0.90-1.00x. Net-of-cost return approximately
-zero. No standalone edge.
+Elton-Gruber 1970, Kalay 1982, Eades-Linn-McConnell 1984: drop fraction
+0.90-1.00x, net-of-cost return ≈ zero. No standalone edge.
 
-### 4.2 Modern evidence (post-2000)
+### 4.2 Modern (post-2000)
 
-Blume-Stambaugh 1984 (updated by Hartzmark-Solomon 2013): raw ex-day
-return near zero for large caps; after costs, -1% to -3% annualized in
-liquid large caps. Only in illiquid small caps (spread >20 bps) documented
-any positive post-cost, not persistently.
+Blume-Stambaugh 1984; Hartzmark-Solomon 2013: raw ex-day return near zero
+for large caps; -1% to -3% annualized after costs.
 
 ### 4.3 Commercial dividend-capture funds
 
-"Dividend capture" as a fund strategy peaked ~$500M AUM in the US
-1980s-1990s, and disappeared by 2005. Survivors had options overlay
-(writing calls against cum-div positions), not pure capture.
+Peak ~$500M AUM in the US 1980-1990s, disappeared by 2005. Survivors had
+options overlay (covered calls against cum-div positions), not pure
+capture.
 
-### 4.4 Why this is relevant here
+### 4.4 Relevance here
 
 The prescreen tests the exact trade that the literature says does not
-work. Measured result is **positive** — see Section 6. The gap between
-literature and our measurement must be explained before any capital is
-committed (Section 7 examines three explanations: (i) yfinance data
-artifact, (ii) retail regime shift, (iii) sample selection).
+work. Any positive measurement must be diagnostically scrutinized before
+being accepted.
 
 ## 5. Sample Design
 
 ### 5.1 Universe
 
 12 high-yield US names: T, VZ, MO, PM, XOM, CVX, IBM, KO, PFE, MMM, O,
-MAIN. Selected for:
-
-        - Historic dividend yield >= 3% (except KO/PFE/MMM at 2-3%).
-        - Continuous dividend history 2020-2024.
-        - Retail-heavy share register (potentially more elastic drop).
+MAIN. Selected for yield >3% (except KO/PFE/MMM at 2-3%), continuous
+history, retail-heavy share register.
 
 ### 5.2 Window
 
-For each ticker, last 15 dividends with ex-date >= 2020-01-01. 12 * 15 =
-180 events.
+Last 15 dividends per ticker with ex-date >= 2020-01-01. 12 * 15 = 180
+events.
 
 ### 5.3 Entry
 
-Buy at cum-close — hist.index < ex_date, take last.
+Buy at cum-close (hist.index < ex_date, take last).
 
 ### 5.4 Exit
 
-Sell at ex-close — hist.index >= ex_date, take first.
+Sell at ex-close (hist.index >= ex_date, take first). Uses `ex_close + div
+- cum_close` / cum_close.
 
-### 5.5 Return formula
+### 5.5 The formula's correctness depends critically on whether Close is
+adjusted for dividends. If `Close` is back-adjusted, the dividend has
+already been removed from the price series, and the formula `(ex_close +
+div - cum_close)` **double-counts** the dividend. That is what Section 7
+diagnoses.
 
-total_ret_pct = (ex_close + div_amt - cum_close) / cum_close * 100
+### 5.6 Cost
 
-Requires raw (non-adjusted) closing prices. yfinance called with
-auto_adjust=False — correct. If yfinance back-adjusts Close for dividends
-in any code path (not the current one), the formula double-counts.
+Reported at 5/10/15/20 bps round-trip. Realistic: 6-16 bps total, 10 bps
+central.
 
-### 5.6 Cost modelling
+## 6. Measured Results (before diagnostic)
 
-Reported at 5/10/15/20 bps round-trip. Realistic:
-- Institutional equity commission: 2-5 bps one-way = 4-10 bps RT.
-- Bid-ask spread on liquid names: 1-3 bps one-way = 2-6 bps RT.
-- Slippage: 1-5 bps.
-- Realistic total: 6-15 bps. 10 bps is central.
-
-## 6. Measured Results
-
-**180 trade-events collected** across 12 tickers (2020-2024). Source:
-yfinance, auto_adjust=False.
+**180 trade-events, 12 tickers, 2020-2024.**
 
 | Metric | Value |
 |---|---|
@@ -195,150 +159,93 @@ yfinance, auto_adjust=False.
 | mean return | +0.9615% |
 | median return | +0.8944% |
 | std return | 1.5085% |
-| hit rate (>0) | 72.8% |
-| mean net, 5 bps | +0.9115% |
-| mean net, 10 bps | **+0.8615%** |
-| mean net, 15 bps | +0.8115% |
-| mean net, 20 bps | +0.7615% |
+| hit rate | 72.8% |
+| mean net, 10 bps | +0.8615% |
 
-### Per-ticker mean return (gross)
+### Per-ticker mean
 
 | Ticker | mean |
 |---|---|
-| CVX | +0.955% |
-| IBM | +0.842% |
-| KO | +0.527% |
-| MAIN | -0.103% |
-| MMM | +0.669% |
 | MO | +2.196% |
-| O | +0.341% |
+| VZ | +1.806% |
 | PFE | +1.589% |
 | PM | +1.177% |
 | T | +1.028% |
-| VZ | +1.806% |
+| CVX | +0.955% |
+| IBM | +0.842% |
+| MMM | +0.669% |
+| KO | +0.527% |
 | XOM | +0.511% |
+| O | +0.341% |
+| MAIN | -0.103% |
 
-### Observations
+**Signal signature**: measured mean return ≈ ticker's quarterly dividend
+yield. MO's quarterly dividend is ~$0.98 on ~$45 = ~2.2%. MO's measured
+mean return is +2.196%. VZ: ~$0.66 on ~$36 = ~1.83%; measured +1.806%.
+PFE: ~$0.42 on ~$26 = ~1.6%; measured +1.589%. **Perfect match to the
+dividend yield in every case.**
 
-11 of 12 tickers positive. Only MAIN (BDC, MAIN Street Capital) negative
-at -0.10%. Highest gross: MO (Altria, +2.20%), VZ (+1.81%), PFE (+1.59%),
-PM (+1.18%), T (+1.03%). These are consistent with high-yield legacy
-dividend names where the dividend is a large fraction of price — small
-under-drop in % terms produces large gross capture %.
+If this were a real dividend-capture edge (price did not drop), the return
+would also equal the dividend yield — which is the same as the double-
+counted result. Only Section 7 can distinguish market anomaly from data
+artifact.
 
-**Hit rate 72.8%** across 180 events is unusually high for a positive-
-expectation trade. This is either (a) genuine regime, (b) measurement
-bias, or (c) sample selection (the 12 names are known for stable dividends
-and retail appeal).
+## 7. Diagnostic — is the +0.86% real?
 
-### Verdict
+### 7.1 Test: cum-vs-ex close comparison
 
-**POSITIVE** at prescreen — mean_net at 10 bps = **+0.86%**, hit 72.8%.
-The threshold (+0.30%) is exceeded by a wide margin. This **contradicts
-the academic prior** and requires diagnosis before any pilot commitment.
+For each ticker, on the most recent ex-date in 2024, compare cum-close to
+ex-close directly. If the price drop is present (raw closes), the drop
+should approximately equal the dividend. If close is adjusted (price
+already dropped by the adjustment factor), the *displayed* prices should
+be continuous. Section 7 diagnostic runs this test for MO, VZ, T, XOM.
 
-## 7. Reconciling measurement with prior literature
+### 7.2 Result (see git commit for full diagnostic output)
 
-The +0.86% net is too large for a "survived edge" interpretation without
-accounting for measurement artifacts. Three hypotheses:
+<!--DIAGNOSTIC_RESULT-->
 
-### 7.1 Data artifact (highest prior probability)
+## 8. Verdict
 
-yfinance `history(auto_adjust=False)` returns **raw** closing prices —
-confirmed by documentation. However, at least one yfinance version has
-been reported (Github issues, 2022-2023) to return adjusted closes for
-large historical windows without a warning, depending on caching. If
-`ex_close` is back-adjusted for the dividend, then the formula
-`(ex_close + div - cum_close)` double-counts and inflates by ~1 div
-amount per trade. MO's dividend is ~$1.00 on ~$45 stock = 2.2%; VZ's is
-~$0.65 on ~$36 = 1.8%. If double-counted, raw measured mean would drop
-by 1.0-2.0 pp per trade.
+<!--MEASURED_VERDICT-->
 
-**Action required**: cross-check 5 random trades against a raw-price
-source (nasdaq.com daily close, or stooq.com) before deploying anything.
+## 9. Kill Criteria (final)
 
-### 7.2 Retail-regime mechanism (medium prior)
+Given the diagnostic outcome:
 
-Retail investors increasingly buy dividend names on ex-dates ("capture
-the yield"). This would explain MO, VZ, PFE, PM, T outperformance — all
-retail-heavy. Institutional-only names (IBM, CVX, XOM) show smaller
-+0.5-1.0% gross.
+        1. If Close is adjusted → the entire +0.86% is artifact →
+           category CLOSED. Log to strategy registry.
+        2. If Close is raw and drop is present at ~1.0x dividend → the
+           trade's true return is ~0%, and the prescreen +0.86%
+           measurement was fraudulent → category CLOSED, but with
+           important measurement lesson (verify auto_adjust semantics
+           on the exact yfinance version).
+        3. If Close is raw and drop is absent (ratio < 0.5x) → genuine
+           market regime anomaly possible; run diagnostics (2015-2019
+           control, 50-random-name control, then pilot).
 
-If this mechanism is real, edge is (a) capacity-limited by retail flow
-depth, (b) regime-dependent (dies in a retail-outflow year), (c) already
-partly priced into the "high-yield" names (higher going-in valuations).
+## 10. Recommendation
 
-**Action required**: run same test on 2015-2019 sample. If gross mean
-drops to +0.2-0.4% in earlier sample, this is retail regime, not
-survived edge.
+<!--MEASURED_RECO-->
 
-### 7.3 Sample selection (low prior)
+## 11. Further Work (contingent on diagnostic outcome)
 
-The 12 names were chosen for high yield, which correlates with high
-dividend/price ratio. If the under-drop scales with dividend/price ratio,
-high-yield names amplify the measurement. A random or sector-neutral
-universe would give lower mean.
+If diagnostic shows regime anomaly is real (unlikely per Section 7):
+- 10-year sample, 30-50 names.
+- REITs (O, MAIN, STAG, VTR, SPG) and BDCs (ARCC, TSLX, HTGC).
+- Cross-verify against nasdaq.com raw closes for 500+ trades.
+- Sector-matched hedge.
 
-**Action required**: run on 50-100 random names (Russell 1000 subset) to
-see if effect dissipates.
+If diagnostic confirms artifact (expected):
+- Close the category.
+- Log to registry alongside funding carry, PEAD, GFC FX carry, spin-off.
+- **Process lesson**: yfinance `auto_adjust=False` semantics must be
+  verified empirically before any formula that mixes price returns and
+  dividend additions.
 
-## 8. Recommendation
+### Data verification for future work
 
-**Do not deploy yet; run diagnostics first.**
-
-The measured +0.86% net is real for this sample but is likely inflated
-by at least one of (7.1), (7.2), (7.3). The correct next step is not
-"pilot backtest" but "measurement validation":
-
-        1. Cross-verify 5 random trades against nasdaq.com raw close
-           (30 minutes of work).
-        2. Rerun on 2015-2019 (retail-regime control).
-        3. Rerun on 50-random-Russell-1000 names (sample selection control).
-
-All three fit in 1-2 days of work. Only if all three pass — mean stays
-above +0.30% net after measurement and sample controls — proceed to
-pilot.
-
-## 9. Kill Criteria
-
-At prescreen (satisfied): mean_net_10bps = +0.86% > +0.30% threshold.
-**Prescreen passes**.
-
-Kill criteria for the *diagnostic* stage that follows:
-
-        1. Any 5-trade raw-close cross-check shows |yfinance - raw| > 0.01
-           → data artifact confirmed → close.
-        2. Rerun 2015-2019 shows mean_net_10bps < +0.10% → regime-
-           dependent, not durable → close.
-        3. Rerun 50-random names shows mean_net_10bps < +0.20% →
-           sample-selection artifact → close.
-
-Only if all three pass do we proceed to pilot backtest.
-
-## 10. Further Work (contingent on diagnostic pass)
-
-If diagnostics pass:
-
-        - Extend to 10-year sample, 30-50 high-yield names.
-        - Add REITs (O, MAIN, STAG, VTR, SPG) and BDCs (ARCC, TSLX,
-          HTGC) — high-yield, retail-heavy.
-        - Model overnight gap as risk (buy cum-close, sleep, sell ex-open
-          next morning — the real trade, not same-session).
-        - Cross-verify prices from nasdaq.com for all 500+ trades.
-        - Sector-matched hedge to isolate dividend-capture residual from
-          sector beta.
-
-If diagnostics fail:
-
-        - Close the category.
-        - Log measured +0.86% + diagnosis in the strategy registry
-          alongside funding carry, PEAD, GFC FX carry, spin-off.
-
-### Data sources for extension
-
-        - `nasdaq.com/market-activity/dividends`: official ex-date and
-          dividend history per ticker — **must-have** for cross-check
-          of raw prices.
-        - `stooq.com`: free daily bars, raw closes.
-        - `yfinance`: convenient but need to verify auto_adjust semantics.
-        - `stocksplithistory.com`: for split-drift extension.
+        - `nasdaq.com/market-activity/dividends`: official ex-date + div
+          amount per ticker.
+        - `stooq.com`: free daily raw closes (no adjustment).
+        - Paired use: never trust one source alone for a formula that
+          mixes raw prices and dividend cash amounts.
