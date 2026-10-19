@@ -240,11 +240,15 @@ as long as the two parties honor them.
   resale is not defensible in both {US, EU} jurisdictions. Sunk cost:
   **$8k–$15k only.** Then pivot to EM local (see Scenario A-fallback).
 
-**Downside protection:** the LOI term sheet checklist in
-DATA_EXCLUSIVITY_SCOPE.md §"LOI Template Checklist" requires a
-termination clause with fee proration. If the Phase 2 backtest fails
-(Week 20), the vendor relationship can be wound down without further
-commitment. Legal cost is the only true sunk cost at Week 4 gate.
+**Downside protection:** the LOI term sheet at
+`docs/data-exclusivity/LOI_TERM_SHEET.md` (Section 2, Termination
+Clause) provides for **termination at end of Year 1 with fee proration
+if Phase 2 backtest produces Sharpe < 1.5**. Practically: if the
+backtest fails at Week 20, we exercise the termination clause, recover
+the unearned portion of the annual fee, and step out. The Year-1 downside
+is bounded to legal (-15k) plus one-quarter of vendor fee (~0-125k
+for AIS at the low end; ~25-500k for cards at the high end, before
+proration). Legal cost is the only true sunk cost at the Week 4 gate.
 
 **Scenario A-fallback:** if legal gate fails, the pivot is EM local
 (Vietnam or Brazil licensed asset manager stake). Capital: $2–5M
@@ -316,6 +320,17 @@ the primary choice.**
 | Key-person risk (2-5 person team) | medium | Long-term continuity | Documentation, transmission files, infrastructure-as-code, event-scraper self-service |
 | Regulatory change (MiCA, GDPR tightening) | low-Medium | Existing strategy still works, but rule set may shift | Defense: separate US and EU legal tracks; data residency explicitly modeled |
 | Execution slippage on micro-cap shorts | medium | Short 13D realized returns below backtest | 3-borrow-track simulation (30/50/80%) isolates sensitivity; exit prices modeled from actual venue depth |
+
+**Footnote on probability estimates.** The 20% / 40% / 60% figures in
+the table above are research judgment calibrated on analogous historical
+cases (structural-edge legal outcomes for small funds, event-driven
+backtest results at n<200, survivorship bias correction in similar
+micro-cap samples). They are **not** empirical calibration from a
+statistical model, and actual probabilities may vary by ±15 percentage
+points. Treat them as decision-relevant ranges, not precise forecasts.
+If a full empirical calibration is required, it would itself cost 2-4
+weeks of analyst time and a -10k data spend — outside the scope of
+the current -15k legal brief budget.
 
 **Critical CFO note:** the concentration of downside risk is in
 Scenario A (data exclusivity). Scenario B carries zero financial risk
