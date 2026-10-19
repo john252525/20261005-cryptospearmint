@@ -144,16 +144,24 @@ acceptable where eIDAS-compliant.
 
 ## Section 4 — Negotiation Strategy
 
-Fight for three, concede three for speed:
+Fight for three, concede up to four for speed, never concede one:
 
 Priority MUST-HAVE (do not sign without): Clause 1 Exclusivity, Clause 4
 Source-of-Origin Warranty, Clause 7 Derived Data Ownership. These three define whether
 the deal has any value at all.
 
-Concede for speed if vendor pushes back: Clause 5 Audit Right (accept annual-only,
-buyer-pays), Clause 8 Data Residency (accept vendor's default jurisdiction if EU data
-not central to the use case), Clause 2 MFN (accept as "reasonable efforts" rather than
-retroactive adjustment).
+Concede for speed if vendor pushes back, NICE-TO-HAVE clauses only: Clause 5 Audit
+Right (accept annual-only, buyer-pays), Clause 8 Data Residency (accept the vendor's
+default hosting jurisdiction if EU data is not central to the use case), Clause 2 MFN
+(accept as "reasonable efforts" rather than retroactive adjustment), Clause 6
+Termination Triggers (accept a 60-day cure period instead of 30, provided the
+immediate-termination right on regulatory enforcement survives intact).
+
+Not a concession under any circumstances: Clause 9 Anti-Assignment. Section 2 rates it
+WALK-AWAY, and it is item 1 of the walk-away triggers below, not a bargaining chip. A
+weakened or time-limited anti-assignment clause is equivalent to accepting that the
+exclusivity does not survive a vendor acquisition, which defeats the purpose of the
+license.
 
 Walk-away triggers, in order of severity:
 
