@@ -461,6 +461,8 @@ available for deeper reading:
 | structural-edge/LEGAL_BRIEF_TEMPLATE.md | Ready-to-send legal tender brief with 10 specific questions for outside counsel | ~126 lines |
 | structural-edge/VENDOR_SHORTLIST.md | 25 vendors evaluated, public cost signals, exclusivity options, contact priorities | ~134 lines |
 | structural-edge/RECOMMENDATION.md | Ranking rationale between data exclusivity, EM local, pause; four-week execution plan | ~132 lines |
+| data-exclusivity/LEGAL_EXECUTION_CHECKLIST.md | Week-by-week legal execution plan (hire lawyers Week 1 → gate decision Week 4 → vendor outreach Weeks 5-6) | ~121 lines |
+| data-exclusivity/VENDOR_OUTREACH_TEMPLATE.md | Ready-to-send vendor outreach email + 30-minute call agenda + 10 questions | ~143 lines |
 | dividend-split/COMBINED_VERDICT.md | Dividend capture and split drift full measurement (supporting Section 2 of this brief) | ~177 lines |
 | monitoring_endpoints.md | Live dashboard URLs, systemd commands, infrastructure state | 40 lines |
 
