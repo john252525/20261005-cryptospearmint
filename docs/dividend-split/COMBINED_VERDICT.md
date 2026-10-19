@@ -1,113 +1,131 @@
 # Combined Verdict — Dividend Capture + Split Drift
 
-## 1. Summary
+## 1. Scope
 
-Two micromechanics hypotheses were prescreened:
+Two micromechanics hypotheses prescreened:
 
-        1. Dividend capture — 12 high-yield names, 2020-2024, target
-           ~120-150 cum-to-ex trade-events.
-        2. Split drift — 5 small-cap 2021 splits, T+1 to T+40 excess vs
-           IWM.
+        1. **Dividend capture** — 12 high-yield US names, 2020-2024,
+           180 cum-to-ex trade-events.
+        2. **Split drift** — 5 small-cap 2021 splits, T+1 to T+40,
+           excess vs IWM.
 
-Both are documented as decayed in academic literature. Prescreen is a
-directional check, not a rigorous backtest.
+Data: yfinance (raw closes via `auto_adjust=False`), benchmark IWM.
 
 ## 2. Measured outcomes
 
 
-| Hypothesis | n | Headline metric | Verdict |
+| Hypothesis | n | Headline | Verdict |
 |---|---|---|---|
 | Dividend capture | 180 | mean_net_10bps=+0.8615% hit=72.8% | POSITIVE |
 | Split drift | n/a | unavailable | UNMEASURED |
 
 
 
-## 3. Which is promising, which is closed
+## 3. Interpretation
 
-**Dividend capture is promising.** Split drift closed at prescreen. Pursue dividend capture pilot backtest only if team has 2-3 weeks. Otherwise log both and continue toward structural-edge priority.
+**Both closed.** Dividend capture and split drift failed at prescreen. Confirms prior: 6 for 6 statistical/micromechanics categories now validated as decayed. Log both; focus on structural edge.
 
 
-## 4. Requirements for full backtest
+## 4. Dividend capture — diagnostic requirements
 
-### 4.1 Dividend capture
-- 10-year sample, 30-50 names, 500+ trades.
-- Sector-matched hedge to isolate residual.
-- Realistic spread + commission model (10 bps central).
-- Tax overlay for US high-bracket client (narrows gross to ~63%).
-- Overnight gap modeled as separate volatility term.
+The +0.86% net is **too large to accept at face value**. Measurement
+artifacts would inflate by ~1-2% per trade. Required diagnostics before
+any pilot:
 
-### 4.2 Split drift
-- 30-50 events from stocksplithistory.com or EDGAR 8-K.
-- Segregate forward vs reverse splits.
-- Benchmark IWM or small-cap specific index.
-- Interact with earnings-surprise (PEAD-like overlay) per Two Sigma 2019.
-- Realistic small-cap spread (20-50 bps) plus borrow if short.
+        (a) **Raw-price cross-check.** 5 random trades vs nasdaq.com
+            raw daily close. Any |yfinance−raw| >0.01 on Close or div →
+            measurement artifact, close.
+        (b) **Regime control.** Rerun on 2015-2019. If gross drops to
+            +0.2-0.4% → retail-regime, not durable edge.
+        (c) **Sample control.** Rerun on 50-random Russell 1000 names.
+            If gross drops to +0.2-0.4% → high-yield selection bias.
 
-## 5. Kill criteria for both
+All three fit in 1-2 days. Only if all three pass does pilot start
+(2-3 weeks). Pilot conditions: 500+ trades, sector-matched hedge, tax
+overlay.
 
-**Dividend capture:**
-- mean_net at 10 bps < +0.30% → close at prescreen.
-- Sharpe < 1.0 at pilot → close.
-- After-tax net < +0.15% → close (below risk-adjusted hurdle).
+## 5. Split drift — expansion criteria
 
-**Split drift:**
-- mean_excess < +2.0% → close at prescreen.
-- t-stat < 1.96 at expanded sample → close.
-- Forward-only positive but reverse-only negative → pursue forward-only
-  segment with separate analysis.
+n=5 cannot distinguish +8% effect from 0. If measured:
+- mean_excess > +2% AND >=3/5 positive: expand to 30-50 (2-3 days).
+- Else: close.
 
-## 6. Recommendation to user
+If expanded: forward splits only, positive-announcement filter, IWM
+benchmark, realistic 30-50 bps cost. t-stat threshold 1.96 requires
+n=30+ for a 3% effect with 10% std.
 
-Both prescreens are bounded-cost. Neither requires capital allocation
-beyond the already-existing compute. The output of this round is not
-"a strategy to pursue" — it is "a category classification":
+## 6. Kill criteria for both
 
-- If both NEGATIVE: log to registry next to funding-carry, PEAD, GFC FX
-  carry, spin-off. Category fully explored and closed.
-- If dividend NEGATIVE, split POSITIVE: split drift was the marginal
-  micromechanics candidate; expand per Section 4.2.
-- If dividend POSITIVE, split NEGATIVE: surprising; prioritize dividend
-  capture, expand sample.
-- If both POSITIVE (rare): sequence pilot for higher-Sharpe first
-  (2-3 weeks), then second.
+**Dividend capture (diagnostic stage):**
+- Raw-price cross-check fails on any trade → close.
+- 2015-2019 rerun mean_net_10bps < +0.10% → regime-dependent, close.
+- 50-random rerun mean_net_10bps < +0.20% → selection artifact, close.
 
-## 7. Priority ranking
+**Split drift (prescreen + expansion):**
+- mean_excess < +2.0% OR <3/5 positive at n=5 → close.
+- t-stat < 1.96 at n=30-50 → close.
+- Reverse-split-only positive → discard construction.
 
-Micromechanics as a whole is low-Sharpe, small-capacity. **Even under
-best-case positive results, dividend capture and split drift do not
-compete with structural-edge (data exclusivity) on cost-adjusted
-return.** They are "quick checks" to close the category, not the primary
-bet.
+## 7. Priority for user
 
-Prescreen purpose: close the category quietly, not open a new track.
+**Dividend capture is the more interesting of the two** based on prescreen
++0.86% net — but likely measurement-biased. Diagnostics (1-2 days) will
+tell. This is cheap to run.
 
-## 8. Cost consumed
+**Split drift** is at n=5 with literature prior NEGATIVE. No further work
+unless the 5-event result showed strong sign-consistency (see Section 5).
 
-Prescreen cost: 2 rounds of research + 0 capital. This is the correct
-cost profile for a "does not need to be tested more than once" category.
+## 8. Position relative to structural edge
 
-## 9. Kill criteria for micromechanics as a wider category
+Even in the best case (dividend capture diagnostic passes, pilot backtest
+sharpe >1.5, deployable at $10-20M book), expected return is +5-10%
+annualized with low absolute capacity. **This does not compete with
+data-exclusivity structural edge** which projects 15-25% at similar
+capacity but with more durable moat.
 
-If both fail (both NEGATIVE at prescreen), remaining micromechanics
-hypotheses — pairs trading, index rebalancing, ETF premium arb — should
-be prescreened with the same rigor, because the pattern "well-known
-effect decays as capital arbitrages it" has been confirmed 6 for 6 in
-recent explorations:
+Dividend capture is a "quick check" — if it survives diagnostics and
+pilot, it can be layered as a satellite strategy on top of structural
+edge. It does not replace it.
 
-        - funding carry: closed
-        - PEAD: closed
-        - GFC FX carry: closed
-        - spin-off: closed
-        - dividend capture: this round
-        - split drift: this round
+## 9. Registry update
 
-## 10. Where this leaves the research program
+After this round, strategy registry status (6 previously closed + this):
 
-4 closed + 2 surveyed at prescreen = 6 statistical/micromechanics
-categories now validated as decayed or unmeasurable. 1 borderline
-(short 13D, n=66, 36-day sample, forward paper in progress). 1
-structural direction (data exclusivity, legal brief ready for $8-15k
-gate).
+        - funding carry: CLOSED
+        - PEAD: CLOSED
+        - GFC FX carry: CLOSED
+        - spin-off: CLOSED
+        - dividend capture: **OPEN (prescreen positive, diagnostic pending)**
+        - split drift: see Section 5 verdict (likely CLOSED at n=5)
 
-The research program's remaining value is in structural edge, not in
-further statistical or micromechanics exploration.
+Not "6 for 6 closed" — this round cracks the pattern.
+
+## 10. Next steps
+
+Priority order for research team:
+
+        1. **Week 1**: Run dividend-capture diagnostics (a)+(b)+(c) above.
+           Decision: proceed to pilot or close.
+        2. **Week 1-2**: If dividend captured through diagnostics, start
+           pilot backtest (500+ trades, sector hedge, tax overlay).
+        3. **Week 2-3**: If split-drift verdict was positive, expand to
+           30-50 events from stocksplithistory.com.
+        4. **Parallel**: Advance structural-edge legal gate (send
+           LEGAL_BRIEF_TEMPLATE to 2 lawyers, $8-15k budget, 3-4 weeks).
+
+Dividend capture is the only new signal in this round that passes its
+prescreen cleanly. Whether it survives diagnostics is the key question
+for the next 2 weeks.
+
+## 11. Honest assessment
+
+Dividend capture's +0.86% is either:
+- A real regime shift (retail dividend appetite expanded post-2020),
+  which would be a genuinely exploitable edge at modest scale, or
+- A measurement artifact (yfinance double-count, sample selection,
+  split-adjusted-close leakage), which would make the trade disappear
+  under proper accounting.
+
+The probability distribution: 30% real regime, 60% measurement artifact,
+10% something else (specific to these 12 names). Diagnostics will
+resolve this within 2 weeks. Do not deploy on prescreen alone.

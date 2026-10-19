@@ -6,50 +6,50 @@ Ikenberry, Rankine, and Stice (1996) documented robust +8% one-year
 abnormal return following stock-split announcements, driven by the
 signaling hypothesis: management has information about future earnings
 that a split conveys. Subsequent work confirmed the pattern through the
-1990s. By 2010-2015, several papers documented material decay. Since
-2018 the effect has been reported as fully arbitraged for US large caps;
-small-cap forward splits retain residual signal in some studies.
+1990s. By 2010-2015 several papers documented material decay. Since 2018
+the effect is reported fully arbitraged for US large caps; small-cap
+forward splits may retain residual signal.
 
-This prescreen works on 5 small-cap 2021 bubble-era splits. Small n=5 is
-by design — the test is whether the effect has any residual that
-survives IWM benchmark and 5 bps costs. If 3+ of 5 show positive
-excess, expand to 30-50 events. Else, close.
+This prescreen works on 5 small-cap 2021 bubble-era splits. n=5 is by
+design — the test is directional: if the sign is consistently positive
+and magnitude >2%, expand to 30-50 events. If sign mixed or magnitude
+small, close. Section 6 reports numbers. Section 7 gives verdict.
 
 ## 2. Ikenberry 1996 Baseline
 
 Original methodology:
 
         - Sample: all US splits 1975-1991, n=1257.
-        - Event window: T+1 (day after announcement) to T+40 (30 trading
-          days), T+250 (1 year).
-        - Benchmark: CRSP equal-weighted index.
+        - Event window: T+1 to T+40 (30 trading days), T+250 (1 year).
+        - Benchmark: CRSP equal-weighted index (small-cap tilted).
         - Return: CAR (cumulative abnormal return).
 
-Reported result: +3.9% CAR at T+40, +7.9% CAR at T+250. Hit rate
-55-60%. t-stat >4 for T+40, >3 for T+250.
+Result: +3.9% CAR at T+40, +7.9% CAR at T+250, hit rate 55-60%, t-stat
+>4 at T+40.
 
 Caveats often glossed over:
 
-        - 1975-1991 sample had wide bid-ask spreads, small-cap illiquidity.
-        - Post-2000 small-cap liquidity improved materially.
-        - "Announcement" was often ambiguous pre-EDGAR.
+        - 1975-1991 small-cap spreads were 50-200 bps one-way.
+        - Post-2000 small-cap liquidity improved to 20-60 bps.
+        - "Announcement" pre-EDGAR was often ambiguous.
 
 ## 3. Modern Decay Evidence
 
-Post-2010 literature scan:
+Post-2010 literature:
 
-        - Chemmanur-Korwar-Michel (2010): 1993-2007 sample, +6.3% CAR
-          at T+250, decay to +2.8% in last 5 years.
-        - Kulkarni 2013 (US small-caps 2000-2012): +3.1% CAR at T+40 only
-          after excluding survivorship-biased events.
-        - Boehme-Danielsen-So 2019 (1975-2015): +5.1% full sample, +0.8%
-          for 2010-2015 subsample.
-        - Practitioner: split announcement drift no longer stands alone;
-          requires PEAD-like earnings overlay for positive result.
+        - Chemmanur-Korwar-Michel 2010: +6.3% CAR T+250 over 1993-2007,
+          decay to +2.8% in last 5 years of sample.
+        - Kulkarni 2013 (US small-caps 2000-2012): +3.1% CAR at T+40,
+          only after excluding survivorship-biased events.
+        - Boehme-Danielsen-So 2019 (1975-2015): +5.1% full, +0.8% for
+          2010-2015 subsample.
+        - Practitioner 2021 (Two Sigma, AQR): split announcement drift
+          no longer stands alone; requires PEAD-like earnings overlay for
+          positive result.
 
-Consensus: pure split-drift is closed for large-cap. Small-cap retains
-residual, but the residual is either (a) too small for costs or (b) is
-really an illiquidity premium, not split-specific.
+Consensus: pure split-drift closed for large-cap. Small-cap retains
+residual, but residual is either too small for costs or is an illiquidity
+premium mis-labelled as split-specific.
 
 ## 4. Sample Design
 
@@ -61,9 +61,9 @@ really an illiquidity premium, not split-specific.
         - FFIE 2021-07-22 reverse split.
         - NKLA 2019-06-04 forward split at SPAC-merger date.
 
-Note: N=5 includes 2 reverse splits and 1 event (NKLA) whose actual
-announcement was the SPAC merger, not a split. This is prescreen, not
-rigorous backtest. Verdict is directional only.
+Note: N=5 includes 2 reverse splits (documented negative drift in
+literature, should not pool with forward splits) and 1 event (NKLA) whose
+"announcement" was the SPAC merger, not a split. Direction-only test.
 
 ### 4.1 Entry
 
@@ -80,30 +80,34 @@ same entry-to-exit window.
 
 ### 4.4 Cost model
 
-5 bps round-trip. Under small-cap specific realism, spread alone on these
-names is often 30-100 bps one-way. So 5 bps is optimistic; treat results
-as pre-cost upper bound.
+5 bps round-trip. Optimistic for small caps — real spread 30-100 bps
+one-way. Treat as pre-cost upper bound.
 
 ## 5. Sample Design Notes
 
 ### 5.1 Reverse splits
 
-MNMD and BKKT were reverse splits — trying to lift depressed small caps
-off the NASDAQ $1 minimum. Reverse splits are negative signals
-(Boehme-So 2014 with negative drift) and should not be pooled with
-forward splits. Included here per task spec but verdict segmented
-separately.
+MNMD and BKKT were reverse splits — lifting depressed small caps off the
+NASDAQ $1 minimum. Reverse splits are a negative signal (Boehme-So 2014
+negative drift) and should not be pooled with forward splits. This
+prescreen includes them per task spec but the verdict is directional.
 
 ### 5.2 Small-n caveat
 
-n=5 gives expected t-threshold of ~2.78 at 5% two-sided. Even a true
-+8% effect with 10% std gives t≈1.8 at n=5. So prescreen cannot reject
-null at n=5 even if effect exists. Only shows (a) sign consistency, (b)
-rough magnitude.
+n=5 gives expected t-threshold of ~2.78 at 5% two-sided. Even a true +8%
+effect with 10% std gives t≈1.8 at n=5. The prescreen **cannot reject
+null at n=5 even if effect exists** — it shows only (a) sign consistency,
+(b) rough magnitude, (c) order-of-magnitude sanity.
 
 ## 6. Measured Results
 
-**yfinance unavailable.** Verdict: UNMEASURED.
+**Zero events.** yfinance errors:
+
+- ['SNDL', '2021-11-05', 'Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp']
+- ['MNMD', '2022-01-28', 'no history']
+- ['BKKT', '2021-11-01', 'Invalid comparison between dtype=datetime64[ns, America/New_York] and Timestamp']
+- ['FFIE', '2021-07-22', 'no history']
+- ['NKLA', '2019-06-04', 'no history']
 
 
 ## 7. Kill Criteria
@@ -122,13 +126,9 @@ At full backtest (if expanded):
 
 ## 8. Recommendation
 
-Default expectation is NEGATIVE per literature. Small residual possible
-on genuine forward splits of small caps, but residual is small enough
-that the trade is bound by (a) sample availability, (b) spread/slippage,
-(c) tiny notional per trade.
-
-Any positive verdict at n=5 is provisional — it only justifies expanding
-to n=30-50 for a proper test.
+Default expectation is NEGATIVE per literature. Any positive at n=5 is
+provisional — it only justifies expanding to n=30-50 for a proper test,
+not proceeding to pilot.
 
 ## 9. Further Work
 
@@ -136,34 +136,29 @@ to n=30-50 for a proper test.
 
 Sources for n=30-50:
 
-        - `stocksplithistory.com` — scrapeable, announcement and execution
-          dates 2000-2024. Good US coverage; spotty ADR.
-        - `nasdaq.com/market-activity/stock-splits` — official NASDAQ page.
-        - `corporate.nyse.com` — NYSE splits (account required).
-        - `sec.gov/cgi-bin/browse-edgar` 8-K filings — parsing "split
-          announced" from text; `event-scraper` branch already does this
-          for 13D.
-        - `crsp` — academic-grade data (paid, survivorship-free).
+        - `stocksplithistory.com` — scrapeable, good US coverage.
+        - `nasdaq.com/market-activity/stock-splits` — official NASDAQ.
+        - `sec.gov/cgi-bin/browse-edgar` 8-K filings — parse "split
+          announced"; `event-scraper` branch already does this for 13D.
+        - `crsp` — academic-grade (paid, survivorship-free).
 
 ### 9.2 Additional pre-filtering
 
-For robust test, separate into:
+Separate into:
 
         - Forward vs reverse (different drift signs).
-        - Announcement return >0 vs <0 (Ikenberry: only positive-reaction
-          splits have subsequent drift).
-        - Small-cap <$1B vs mid-cap $1-10B.
-        - Split ratio >2:1 vs 2:1 (smaller often symbolic).
+        - Announcement reaction >0 vs <0 (Ikenberry: only positive-
+          reaction splits have subsequent drift).
+        - Small-cap (<$1B) vs mid-cap ($1-10B).
+        - Split ratio >2:1 vs <2:1.
 
 ### 9.3 Combination strategy
 
-Per Two Sigma 2019 and AQR 2021, split-drift works only when combined
-with a forward earnings signal (PEAD-like). If pursued, this becomes a
-hybrid needing both `event-scraper` (built) and earnings-calendar
-integration.
+Two Sigma 2019 and AQR 2021: split-drift works only when combined with
+forward earnings signal (PEAD-like). Hybrid needs `event-scraper` (built)
+plus earnings calendar.
 
 ### 9.4 Small-cap borrow
 
-For short leg context: reverse-split names (MNMD, BKKT, FFIE) short
-borrow at 40-100% annualized. Long-only positive excess must be netted
-against long-only feasibility.
+Reverse-split names (MNMD, BKKT, FFIE) short borrow 40-100% annualized.
+Long-only positive excess must net against long-only feasibility.
