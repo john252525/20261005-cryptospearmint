@@ -270,3 +270,96 @@ B) Install an SSH key here and push directly:
 
 
 
+
+
+---
+
+# v3 — Final iteration: two independent tests, both failed
+
+Two tests were run as the last shot. Either would have unlocked armed paper. Neither did.
+
+## Test A — Cross-sectional momentum (32-symbol universe, 4h bars)
+
+Universe: 32 pairs (30 alts + BTC + ETH), Binance 4h, 2020-01-01..2024-12-31, 10 961 bars each (SHIB/ICP/AXAX etc. start later at listing).
+Rule: every 7 days (42 x 4h bars) rank by 30-day (180-bar) return, long top-5 equal-weight, short bottom-5 equal-weight. Fee 10 bps + 5 bps slippage per rebalance per side.
+
+| period | Sharpe | return | max DD | rebalances | avg turnover | gross | fee drag | hit rate |
+|--------|--------|--------|--------|------------|--------------|-------|----------|----------|
+| P1 2020-01..2022-06 | +0.862 | +111.6% | -31.5% | 126 | 0.80 | +132.6% | 30.4% | 0.54 |
+| P2 2022-07..2024-12 | +0.521 | +30.7% | -25.4% | 127 | 0.84 | +68.5% | 32.0% | 0.56 |
+
+Gate was Sharpe>1.0 in BOTH periods and DD>-30% in both.
+**Result: FAILED** — P1 +0.862, P2 +0.521.
+
+Interpretation: the strategy is *not* broken — both periods are positive (+111.6% and +30.7%), hit rate ~54%, gross returns +133% / +68%. But turnover runs at 0.80 per rebalance and fees+slippage eat 30% and 32% of P&L — roughly a quarter to a third of gross. What remains is a mid-single-digit Sharpe, and in P2 it decays to +0.52 as the market matures and momentum alpha compresses. Notably P2 gross fell relative to P1 while fees stayed flat, so the fee drag in relative terms got worse.
+
+## Test B — ATR trailing stop on v1 top-5 strategies
+
+Same 5 families (sma_cross 20/50, ema_cross 12/26, macd_cross, rsi_obos, donchian_break) on BTC/ETH/SOL, bull 2022-2024 vs pre-2022 2018-2021. Three trailing variants were tested.
+
+**Methodology note (important):** per-trade Sharpe (my first pass) is not comparable to the v2 daily-equity metric. The table below uses the *same* accounting as v2 — $500 capital, $10/trade, no stop (exit on signal only) — so it is apples-to-apples with earlier results.
+
+| strategy | symbol | bull Sharpe | pre-2022 Sharpe | bull trades | pre trades | bull win | pre win |
+|----------|--------|-------------|-----------------|-------------|------------|----------|---------|
+| sma_cross | SOL-USDT | +0.722 | +1.201 | 284 | 136 | 36.6% | 41.2% |
+| ema_cross | SOL-USDT | +0.490 | +2.145 | 415 | 182 | 31.1% | 38.5% |
+| sma_cross | BTC-USDT | +0.187 | +0.403 | 310 | 394 | 32.6% | 32.7% |
+| sma_cross | ETH-USDT | +0.024 | +0.874 | 302 | 404 | 29.5% | 35.1% |
+| donchian_break | SOL-USDT | -0.088 | +1.487 | 298 | 132 | 31.9% | 43.9% |
+| ema_cross | BTC-USDT | -0.235 | +0.171 | 420 | 535 | 24.3% | 27.7% |
+| donchian_break | BTC-USDT | -0.326 | +0.099 | 279 | 351 | 29.7% | 33.9% |
+| ema_cross | ETH-USDT | -0.344 | +1.113 | 426 | 530 | 27.7% | 32.3% |
+| rsi_obos | SOL-USDT | -0.606 | +0.394 | 452 | 217 | 56.0% | 58.1% |
+| macd_cross | SOL-USDT | -0.827 | +1.756 | 881 | 408 | 32.8% | 40.0% |
+| donchian_break | ETH-USDT | -1.088 | +0.748 | 297 | 343 | 32.0% | 37.0% |
+| macd_cross | ETH-USDT | -1.239 | +0.339 | 859 | 1119 | 31.5% | 37.8% |
+| rsi_obos | ETH-USDT | -1.707 | -1.464 | 437 | 561 | 51.9% | 56.5% |
+| rsi_obos | BTC-USDT | -1.987 | -1.972 | 429 | 531 | 49.0% | 53.9% |
+| macd_cross | BTC-USDT | -2.029 | -0.630 | 881 | 1154 | 31.4% | 33.5% |
+
+Gate was Sharpe>1.0 in both eras for at least one combo.
+**Result: FAILED** — no combo clears bull>1.0. Best is `sma_cross` on `SOL-USDT`: bull +0.722, pre-2022 +1.201.
+
+The ATR-trailing variants themselves made things worse, not better: `atr_floor` produced uniformly negative Sharpes (e.g. sma_cross BTC bull -2.57 / pre -1.07), and `spec_breakeven_floor` (stop=entry) is degenerate — it converts every trade into an identical (~-2x fee) loss, which collapses the return standard deviation and makes a naive Sharpe blow up to nonsense values. I capped/degenerate-guarded that path rather than report ±1e14 as if it were a result.
+
+Pattern across the table: strategies are **positive in pre-2022 and weak-to-negative in 2022-2024** (e.g. ema_cross SOL +2.15 -> +0.49; rsi_obos is negative in both eras despite a 50%+ win rate, because losers are much larger than winners). This is the opposite of a robust edge and consistent with TA-on-majors being progressively arbitraged as crypto matured.
+
+## Final decision
+
+**NEGATIVE. Playground closed.** Paper stays DISARMED. No live capital.
+
+Both independent tests failed their pre-registered gates. No parameters were tuned to force a pass, no new strategies were invented to fit the 2024 window, and no universe was cherry-picked after seeing results.
+
+## Playground closed: lessons learned
+
+1. **Fixed-percent SL/TP kills trend edge.** On 1h bars with 40-100h holds, a -2% stop fires within 1-2 bars and a +5% target caps the fat tail. Measured: worse than no-stop on 11 of 12 combos, average Sharpe delta -0.68. Any trend system needs an ATR-scaled or structural stop, not a fixed percent.
+2. **TA on majors is mostly arbitraged now.** Pre-2022 Sharpe > 2022-24 Sharpe for nearly every combo. Whatever worked in the 2018-2021 retail era has decayed as the market professionalised. The one survivor family (long-slow-leg SMA/EMA cross) is exactly the slowest, least-leveraged version.
+3. **Cross-sectional momentum works but does not pay its costs at 10 bps + 5 bps.** Gross +133% / +69% shrinks to Sharpe 0.86 / 0.52 after fees and slippage of 30%+ each period. A real implementation would need maker fills, longer hold, or a mid-cap-only universe; none of those were tested here.
+4. **Statistical TA edge on majors is not the same thing as structural edge.** Every test here was a search for a statistical pattern in price. None of them produced something I would put $10 of real money behind. That is the honest result of 3 iterations over ~470 backtests: the TA playground does not contain a deployable system on the tested universe. If real edge exists in this space it is more likely in structural/flow/carry terrain, not in the price-pattern search that this playground explored.
+
+## Infrastructure left behind (usable, if a future universe is found)
+
+- `src/strategies/indicators.py` — SMA/EMA/RSI/BB/MACD/ROC/Donchian/OBV.
+- `src/strategies/simple.py` — 10 strategies, registry keyed by name.
+- `src/backtest/runner.py` — next-bar-open long-only backtester, fee+slippage, 8 metrics.
+- `src/backtest/portfolio.py` — fixed-notional P&L, daily-equity metrics, configurable SL/TP.
+- `src/backtest/grid.py` — parameter grid search -> CSV.
+- `src/execution/paper_testnet_v2.py` — paper runner, SQLite + JSONL with live `pnl_cumulative`, DISARMED by default.
+- `data/` — 1h majors 2018-2024, 4h 32-pair 2020-2024, and the three result CSVs / JSONs behind every number above.
+
+## How to take the code out of this sandbox
+
+SSH from this host to GitHub still returns Permission denied. Copy the bundle:
+
+    scp root@176.12.79.100:/tmp/playground_v3.bundle .
+    git clone playground_v3.bundle simple-strategies-playground
+    cd simple-strategies-playground && git log --oneline
+
+Or install a key and push directly:
+
+    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+    cat ~/.ssh/id_ed25519.pub     # add to https://github.com/settings/keys
+    ssh -T git@github.com         # expect: Hi <username>!
+    cd /opt/20261005-cryptospearmint
+    git remote add origin git@github.com:<username>/20261005-cryptospearmint.git
+    git push -u origin main

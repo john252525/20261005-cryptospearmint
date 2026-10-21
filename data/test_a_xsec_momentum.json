@@ -1,0 +1,31 @@
+{
+  "universe_size": 32,
+  "lookback_bars": 180,
+  "rebal_bars": 42,
+  "top_k": 5,
+  "fee": 0.001,
+  "slip": 0.0005,
+  "P1": {
+    "label": "P1_2020_2022",
+    "sharpe": 0.862,
+    "ret": 111.6,
+    "dd": -31.5,
+    "rebalances": 126,
+    "avg_turnover": 0.8,
+    "gross_ret": 132.6,
+    "fee_drag": 30.4,
+    "hit_rate": 0.54
+  },
+  "P2": {
+    "label": "P2_2022_2024",
+    "sharpe": 0.521,
+    "ret": 30.7,
+    "dd": -25.4,
+    "rebalances": 127,
+    "avg_turnover": 0.84,
+    "gross_ret": 68.5,
+    "fee_drag": 32.0,
+    "hit_rate": 0.559
+  },
+  "passes": false
+}
