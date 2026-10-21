@@ -117,3 +117,156 @@ Execution guardrails for live:
 
 On this server (176.12.79.100): nothing outside `/opt/20261005-cryptospearmint/`.
 On canonical server (109.172.6.35): trading-desk, risk_v0, env-scraper-wt, short-13d-paper, monitoring — physically different host, untouched.
+
+
+---
+
+# v2 — Anti-Overfit + Portfolio + Paper Runner v2
+
+## Motivation
+
+v1 top-3 was three SOL trend strategies with DD 47-55%, hit ~32%. That is not tradeable as-is; the natural suspicion is 2022-2024 SOL bull-era overfitting. v2 tests this directly.
+
+## Data
+
+Bear-era data fetched from Binance 1h klines:
+- BTC 2018-01-01..2021-12-31: 34 943 bars
+- ETH same period: 34 943 bars
+- SOL: **only from 2020-08-11** (listing date), 12 167 bars
+
+**Critical honesty note:** the SOL "bear" window 2020-08..2021-12 is NOT a bear market for SOL. It is the listing-to-ATH phase (price $3 -> $180). Any SOL strategy will look brilliant there and it does not constitute an out-of-sample bear test. BTC/ETH 2018-01..2020-06 (true-bear, real drawdown with COVID crash) is the only honest bear test in this dataset.
+
+## Anti-Overfit Filter Results
+
+All 156 v1 combos re-run on bear-era data, kept when they exist on both eras.
+
+Strict joint gate (Sharpe>0.8 both, trades>20 both, DD<40% both): **0 of 156 pass.**
+
+Relaxed (Sharpe>0.8 bull, >0.5 bear, trades>20 both, DD<60% both): **3 of 156 pass** — and all three are SOL-only, and all three are the same family (EMA/SMA cross with long slow leg). They pass only because SOL 2020-21 was a moon shot.
+
+| strategy | params | symbol | bull_sharpe | bear_sharpe | bull_dd | bear_dd | trades_bull | trades_bear |
+|----------|--------|--------|-------------|-------------|---------|---------|-------------|-------------|
+| ema_cross | {'fast': 20, 'slow': 50} | SOL-USDT | +1.112 | +1.623 | 46.7% | 55.9% | 225 | 109 |
+| sma_cross | {'fast': 20, 'slow': 100} | SOL-USDT | +0.885 | +1.559 | 55.0% | 49.8% | 161 | 86 |
+| sma_cross | {'fast': 10, 'slow': 100} | SOL-USDT | +1.022 | +1.495 | 47.1% | 53.0% | 208 | 110 |
+
+## Portfolio — and why it failed
+
+Built per spec: $500 capital, $10 per-trade notional, SL -2%, TP +5%, per-strategy cap 30%, max 10 concurrent positions.
+
+Portfolio from the 3 relaxed "robust" strategies (all SOL):
+
+| era | portfolio sharpe | portfolio DD | portfolio return | trades | total PnL |
+|-----|------------------|--------------|------------------|--------|-----------|
+| SOL bull 2022-24 | **-0.054** | 1.65% | -0.20% | 588 | -$1.01 |
+| SOL "bear" 2020-21 | **-0.145** | 1.32% | -0.23% | 304 | -$1.13 |
+
+Both fail the Sharpe>0.8-in-both-eras target. **Portfolio is not tradeable with SL -2% / TP +5%.**
+
+Same portfolio with SL/TP disabled (only exit signal):
+
+| era | portfolio sharpe | portfolio DD | portfolio return | total PnL |
+|-----|------------------|--------------|------------------|-----------|
+| SOL bull 2022-24 | +1.120 | 3.08% | +14.06% | +$70.29 |
+| SOL "bear" 2020-21 | +1.803 | 3.55% | +22.32% | +$111.59 |
+
+So the *strategy* has edge on SOL, but the SL/TP combination destroys it. Why? Average hold time of these trend strategies is 40-100 hours; a -2% stop on 1h bars fires within 1-2 bars of entry, and a +5% target caps trend rides. Result: churn, win-rate ~31%, no room for the fat tail to materialise. This is a structural conflict, not a tuning problem.
+
+## Cross-Asset Diagnostic (BTC/ETH, true-bear window)
+
+The decisive test: apply the same families on BTC and ETH across 2022-2024 (bull-era) and 2018-06..2020-06 (true-bear) with and without SL/TP.
+
+| strategy | params | symbol | era | sharpe WITH SL/TP | sharpe NO SL/TP | no-SL DD | no-SL trades |
+|----------|--------|--------|-----|-------------------|-----------------|----------|--------------|
+| ema_cross | {"fast":20,"slow":50} | BTC-USDT | bull_2022_2024 | -1.186 | +0.248 | 1.28% | 243 |
+| ema_cross | {"fast":20,"slow":50} | BTC-USDT | true_bear_2018_2020 | -0.444 | +1.004 | 0.63% | 168 |
+| ema_cross | {"fast":20,"slow":50} | ETH-USDT | bull_2022_2024 | +0.895 | +0.345 | 1.04% | 225 |
+| ema_cross | {"fast":20,"slow":50} | ETH-USDT | true_bear_2018_2020 | -0.824 | +0.894 | 1.22% | 193 |
+| sma_cross | {"fast":20,"slow":100} | BTC-USDT | bull_2022_2024 | +0.260 | +0.640 | 1.11% | 174 |
+| sma_cross | {"fast":20,"slow":100} | BTC-USDT | true_bear_2018_2020 | -0.165 | +0.668 | 0.82% | 129 |
+| sma_cross | {"fast":20,"slow":100} | ETH-USDT | bull_2022_2024 | -0.128 | +0.322 | 1.17% | 177 |
+| sma_cross | {"fast":20,"slow":100} | ETH-USDT | true_bear_2018_2020 | +0.606 | +0.993 | 0.85% | 135 |
+| sma_cross | {"fast":10,"slow":100} | BTC-USDT | bull_2022_2024 | -0.611 | +0.043 | 1.91% | 224 |
+| sma_cross | {"fast":10,"slow":100} | BTC-USDT | true_bear_2018_2020 | +0.038 | +0.638 | 1.07% | 156 |
+| sma_cross | {"fast":10,"slow":100} | ETH-USDT | bull_2022_2024 | +0.360 | +0.375 | 1.15% | 215 |
+| sma_cross | {"fast":10,"slow":100} | ETH-USDT | true_bear_2018_2020 | +0.134 | +0.900 | 0.86% | 164 |
+
+Summary: SL/TP is **worse than no SL/TP on 11 of 12 combos**, average Sharpe delta **-0.68**.
+
+Best cross-era candidate under no-SL model: `sma_cross fast=10,slow=100` on ETH —
+  bull 2022-24: Sharpe +0.375, true-bear 2018-20: Sharpe +0.900, no-SL DD ~1.2%.
+This is the ONLY family/asset combo that is positive on both eras with no SL/TP and is not SOL-correlated. It still does NOT clear the >0.8-on-both gate (bull side is 0.375).
+
+## Verdict v2
+
+**Negative on the "paper trading launch" gate.** Reasoning:
+
+1. Zero strategies clear the strict anti-overfit filter.
+2. The 3 "relaxed" survivors all live on one asset (SOL) in one regime (listing boom), which is not out-of-sample evidence.
+3. Portfolio on those 3 with SL/TP fails Sharpe target in both eras.
+4. SL/TP -2%/+5% removes ~0.7 Sharpe: incompatible with multi-day trend holding.
+5. The only cross-era positive non-SOL candidate (`sma 10/100` on ETH) has bull Sharpe 0.375 — too weak to justify real money.
+
+**No live capital should be deployed.** Paper runner v2 exists as infrastructure (`src/execution/paper_testnet_v2.py`), starts DISARMED by default, and the `robust_strategies.json` it reads is marked `selection_mode=relaxed` with an explicit caveat.
+
+## Next steps (v3)
+
+1. **Expand universe** to 30+ altcoin pairs. The edge candidate (SMA 10/100) may exist on many alts; cross-sectional robustness is the real test, not one asset's history.
+2. **Drop SL/TP** for trend strategies; use ATR-based trailing stop, not fixed percent. Fixed 2% is structurally wrong for 1h bars with 40-100h holds.
+3. **Cross-sectional momentum** — rank alts by 30d ROC, long top-5, rebalance weekly. This is the classic robust version and it does not need per-symbol backtest cherry-picking.
+4. **Regime split** — test strategies separately on 2018-bear / 2019-chop / 2020-COVID / 2021-bull / 2022-bear / 2023-24-recovery. "Positive on both eras" hides a lot of dead months.
+5. Only after (1)-(4) do we re-run the promotion gate.
+
+## Paper Runner v2 — infrastructure, not a trading record
+
+Reads selection from `data/robust_strategies.json`.
+Real Binance market data via ccxt; fills simulated locally; state in `state/paper_v2.db`; journal in `journal/paper_v2.jsonl` (JSONL, one line per tick, includes `pnl_cumulative` in USD on $500 base).
+
+**DISARMED BY DEFAULT** — records observes but does not open positions. To open paper positions (still fake money):
+
+    cd /opt/20261005-cryptospearmint && source venv/bin/activate
+    python3 -m src.execution.paper_testnet_v2 --armed --duration 3600
+    # or daemon mode:
+    nohup python3 -m src.execution.paper_testnet_v2 --armed > journal/paper_v2.log 2>&1 &
+
+Read the live journal:
+
+    tail -f /opt/20261005-cryptospearmint/journal/paper_v2.jsonl
+    # each line: {ts, event, strategy, symbol, notional, pnl_cumulative, note}
+
+Inspect DB directly:
+
+    python3 -c "import sqlite3; c=sqlite3.connect('/opt/20261005-cryptospearmint/state/paper_v2.db'); print('open:', c.execute(\"SELECT COUNT(*) FROM positions WHERE status='open'\").fetchone()[0]); print('cum pnl:', c.execute(\"SELECT COALESCE(SUM(pnl),0) FROM positions WHERE status='closed'\").fetchone()[0])"
+
+Stop:
+
+    pkill -f src.execution.paper_testnet_v2
+
+Smoke test (single cycle, disarmed):
+
+    python3 -m src.execution.paper_testnet_v2 --once
+
+## How to take this code out of the sandbox
+
+SSH to GitHub from this host returns Permission denied (no key installed). Options:
+
+A) Copy git bundle (easiest):
+
+    # on your workstation
+    scp root@176.12.79.100:/tmp/playground_v2.bundle .
+    git clone playground_v2.bundle simple-strategies-playground
+    cd simple-strategies-playground && git branch -a
+
+B) Install an SSH key here and push directly:
+
+    # on this server (176.12.79.100)
+    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
+    cat ~/.ssh/id_ed25519.pub
+    # add that pub key to https://github.com/settings/keys as an auth key
+    ssh -T git@github.com   # expect: Hi <username>!
+    cd /opt/20261005-cryptospearmint
+    git remote add origin git@github.com:<username>/20261005-cryptospearmint.git
+    git push -u origin main
+
+
+

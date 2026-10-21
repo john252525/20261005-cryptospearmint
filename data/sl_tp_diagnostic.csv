@@ -1,0 +1,13 @@
+strategy,params,symbol,era,sharpe_with_sl,ret_with_sl,n_with_sl,sharpe_no_sl,ret_no_sl,n_no_sl,dd_no_sl
+ema_cross,"{""fast"":20,""slow"":50}",BTC-USDT,bull_2022_2024,-1.186,-0.0163,246,0.248,0.0066,243,0.0128
+ema_cross,"{""fast"":20,""slow"":50}",BTC-USDT,true_bear_2018_2020,-0.444,-0.0051,175,1.004,0.0284,168,0.0063
+ema_cross,"{""fast"":20,""slow"":50}",ETH-USDT,bull_2022_2024,0.895,0.014,232,0.345,0.0097,225,0.0104
+ema_cross,"{""fast"":20,""slow"":50}",ETH-USDT,true_bear_2018_2020,-0.824,-0.0106,196,0.894,0.0324,193,0.0122
+sma_cross,"{""fast"":20,""slow"":100}",BTC-USDT,bull_2022_2024,0.26,0.0035,177,0.64,0.0183,174,0.0111
+sma_cross,"{""fast"":20,""slow"":100}",BTC-USDT,true_bear_2018_2020,-0.165,-0.0017,131,0.668,0.0176,129,0.0082
+sma_cross,"{""fast"":20,""slow"":100}",ETH-USDT,bull_2022_2024,-0.128,-0.0017,178,0.322,0.0091,177,0.0117
+sma_cross,"{""fast"":20,""slow"":100}",ETH-USDT,true_bear_2018_2020,0.606,0.007,138,0.993,0.0302,135,0.0085
+sma_cross,"{""fast"":10,""slow"":100}",BTC-USDT,bull_2022_2024,-0.611,-0.0086,229,0.043,0.0012,224,0.0191
+sma_cross,"{""fast"":10,""slow"":100}",BTC-USDT,true_bear_2018_2020,0.038,0.0004,159,0.638,0.0179,156,0.0107
+sma_cross,"{""fast"":10,""slow"":100}",ETH-USDT,bull_2022_2024,0.36,0.0053,218,0.375,0.0105,215,0.0115
+sma_cross,"{""fast"":10,""slow"":100}",ETH-USDT,true_bear_2018_2020,0.134,0.0017,171,0.9,0.028,164,0.0086
