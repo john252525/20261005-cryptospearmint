@@ -1,0 +1,48 @@
+{
+  "selection_mode": "relaxed_from_sharpe_top3",
+  "strict_count": 0,
+  "top3": [
+    {
+      "rank": 1,
+      "strategy": "ema_cross",
+      "params": {
+        "fast": 20,
+        "slow": 50
+      },
+      "symbol": "SOL-USDT",
+      "sharpe": 1.1121,
+      "dd": 0.467384,
+      "hit": 0.3244,
+      "trades": 225,
+      "total_return": 5.455664
+    },
+    {
+      "rank": 2,
+      "strategy": "sma_cross",
+      "params": {
+        "fast": 10,
+        "slow": 100
+      },
+      "symbol": "SOL-USDT",
+      "sharpe": 1.0224,
+      "dd": 0.471359,
+      "hit": 0.3413,
+      "trades": 208,
+      "total_return": 4.412106
+    },
+    {
+      "rank": 3,
+      "strategy": "sma_cross",
+      "params": {
+        "fast": 20,
+        "slow": 100
+      },
+      "symbol": "SOL-USDT",
+      "sharpe": 0.8853,
+      "dd": 0.549523,
+      "hit": 0.3168,
+      "trades": 161,
+      "total_return": 2.787504
+    }
+  ]
+}
