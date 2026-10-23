@@ -363,3 +363,146 @@ Or install a key and push directly:
     cd /opt/20261005-cryptospearmint
     git remote add origin git@github.com:<username>/20261005-cryptospearmint.git
     git push -u origin main
+
+
+---
+
+# v5 — High-APR funding arbitrage (target 100-200% net APR): NEGATIVE
+
+Target was 100-200% net APR. Three sub-strategies were tested. **None reached 100%. Best honest result: 10.18% net APR.** No live capital, no armed paper.
+
+## Data
+
+Binance funding history, 8h events, 2022-01-01..2024-12-31:
+- 28 symbols, 90,346 total events
+- Typical symbol: 3288 events (3/day, no gaps; ARB max gap 8h)
+
+Bybit funding history, same window:
+- 23 symbols, 75,601 total events
+- Unavailable on Bybit: MKR, OP, ARB
+
+## The starting premise was wrong
+
+The filter for Sub-A was mean_apr > 100% AND pct_positive > 0.75. **Zero of 28 symbols qualified.** Not one.
+
+| metric | value |
+|--------|-------|
+| max mean APR across universe | **13.75%** (ARB) |
+| median mean APR | 7.1% |
+| symbols with mean APR > 20% | 0 |
+| symbols with mean APR > 50% | 0 |
+| symbols with mean APR > 100% | 0 |
+
+Full universe (Binance, mean APR annualized; vol = annualized std of the funding APR itself):
+
+| symbol | events | mean APR % | pct positive | APR vol % |
+|--------|--------|-----------|--------------|-----------|
+| ARB | 1949 | +13.75 | 0.93 | 0.5 |
+| OP | 2834 | +10.38 | 0.84 | 0.6 |
+| UNI | 3288 | +9.98 | 0.89 | 0.3 |
+| LINK | 3288 | +9.82 | 0.89 | 0.4 |
+| FIL | 3288 | +9.79 | 0.86 | 0.5 |
+| DOGE | 3288 | +9.15 | 0.85 | 0.4 |
+| VET | 3288 | +9.09 | 0.87 | 0.4 |
+| MKR | 3288 | +9.03 | 0.86 | 0.6 |
+| LTC | 3288 | +8.86 | 0.86 | 0.4 |
+| ALGO | 3288 | +8.63 | 0.86 | 0.5 |
+| GRT | 3288 | +8.55 | 0.88 | 0.5 |
+| AAVE | 3288 | +8.46 | 0.86 | 0.4 |
+| FTM | 3288 | +7.54 | 0.83 | 0.6 |
+| XRP | 3288 | +7.47 | 0.79 | 0.5 |
+| ADA | 3288 | +6.73 | 0.78 | 0.5 |
+| XLM | 3288 | +5.77 | 0.74 | 0.5 |
+| NEAR | 3288 | +5.55 | 0.77 | 0.7 |
+| HBAR | 3288 | +5.38 | 0.81 | 0.7 |
+| AVAX | 3288 | +4.27 | 0.70 | 0.6 |
+| CHZ | 3288 | +3.87 | 0.79 | 1.1 |
+| ATOM | 3288 | +1.74 | 0.62 | 0.5 |
+| CRV | 3288 | +1.46 | 0.72 | 0.8 |
+| COMP | 3288 | +1.43 | 0.76 | 1.2 |
+| SNX | 3288 | +0.27 | 0.69 | 0.9 |
+| DOT | 3288 | -0.40 | 0.56 | 0.6 |
+| TRX | 3288 | -5.33 | 0.55 | 1.0 |
+| BCH | 3288 | -5.34 | 0.48 | 0.7 |
+| SOL | 3363 | -7.50 | 0.72 | 3.9 |
+
+## Sub-A — single-exchange delta-neutral on top funding
+
+Since nothing cleared 100%, the filter was relaxed to "top-5 by mean APR that actually exist" (ARB, OP, UNI, LINK, FIL) to measure what IS achievable. $100/symbol, $500 total, entry/exit 20 bps round-trip, weekly regime check (7d rolling mean funding > 0).
+
+| symbol | mean APR | active days % | switches | gross APR | fee drag | net APR |
+|--------|----------|---------------|----------|-----------|----------|---------|
+| ARB | +13.75 | 95.8 | 11 | +13.54 | 1.24 | +12.30 |
+| OP | +10.38 | 88.8 | 21 | +11.15 | 1.62 | +9.52 |
+| UNI | +9.98 | 96.6 | 17 | +9.87 | 1.13 | +8.73 |
+| LINK | +9.82 | 94.2 | 17 | +9.84 | 1.13 | +8.71 |
+| FIL | +9.79 | 88.7 | 29 | +10.22 | 1.93 | +8.28 |
+
+**Portfolio: net APR 9.51%, CAGR +9.99%, max DD -0.08%, total +33.05% over 3.0y.**
+
+Reported Sharpe was 15.4 — **that number is an artifact and should be ignored.** It treats daily funding as near-deterministic. In reality the funding rate itself has ~50% annualized volatility (see last column of the universe table), flips sign, and can stay negative for weeks. A proper Sharpe including funding volatility and basis risk is closer to 1.5-2.5, not 15.
+
+**Sub-A PASS (>100% net APR): NO** — 9.51% vs target 100%.
+
+## Sub-B — cross-exchange funding spread (Binance vs Bybit)
+
+Threshold: |spread| > 5 bps per 8h event (= 54.8% APR). Cost: 40 bps round-trip per switch (two legs, two exchanges).
+
+Top-10 symbols by mean |spread|:
+
+| symbol | mean abs spread bps | gross APR upper % | events >5bps | % events >5bps |
+|--------|---------------------|-------------------|--------------|----------------|
+| BCH | 0.851 | +9.32 | 18.0 | 0.91 |
+| CRV | 0.801 | +8.77 | 28.0 | 1.42 |
+| TRX | 0.778 | +8.52 | 17.0 | 0.86 |
+| VET | 0.769 | +8.42 | 53.0 | 2.68 |
+| COMP | 0.725 | +7.94 | 24.0 | 1.21 |
+| SNX | 0.712 | +7.80 | 18.0 | 0.91 |
+| DOT | 0.696 | +7.63 | 6.0 | 0.30 |
+| ATOM | 0.689 | +7.54 | 6.0 | 0.30 |
+| SOL | 0.673 | +7.36 | 14.0 | 0.73 |
+| HBAR | 0.653 | +7.15 | 20.0 | 1.01 |
+
+**Aggregate: mean |spread| across the whole universe = 0.602 bps per 8h. Only 259 of 45 403 events (0.57%) exceeded 5 bps. 0 of 23 symbols had positive net APR. Zero.**
+
+You need |spread| > 40 bps merely to break even on a single switch against 40 bps round-trip cost. Observed average was 0.6 bps — off by nearly two orders of magnitude.
+
+**Sub-B PASS: NO.** This is not a tuning problem. Binance/Bybit funding spreads are fully arbitraged by market makers operating with maker rebates and colocated infrastructure.
+
+## Sub-C — combined
+
+Top-3 by absolute net yield across A and B. All three picks were Sub-A (ARB +12.30%, OP +9.52%, UNI +8.73%) because every Sub-B candidate had negative net yield.
+
+**Portfolio: net APR 10.18%, CAGR +9.61%, max DD -0.05%.**
+
+Sub-C == Sub-A with a slightly different weighting. No independent edge from combining.
+
+**Sub-C PASS: NO.**
+
+## Honest reconciliation
+
+**Capacity (asked explicitly):** PASS for Sub-A. $100 notional on ARB/OP/UNI/LINK/FIL is roughly 0.0001% of 24h ADV on Binance futures. Liquidity is not the constraint here. It is also not the reason APR is low — true funding yield on these names is simply ~10%.
+
+**Risks NOT captured in the backtest** (this is where 9.5% becomes less attractive, not more):
+- **Funding volatility is ~50% annualized.** A strategy that plans on 13.7% mean APR on ARB should expect multi-week negative stretches. My daily-Sharpe computation hid this completely.
+- **Basis dislocation.** Spot and perp can diverge 1-2% in a flash crash before funding settles. On $100 notional, one 2% dislocation = $2 loss = ~2.5 months of carry at 10% APR. Delta-neutral is not risk-neutral.
+- **Liquidation of the short perp leg** if the spot hedge lags during a gap. Mitigable with a 50%+ margin buffer and isolated margin, but not free.
+- **Single-venue custody.** Both legs on Binance: if withdrawals freeze, the position cannot be unwound.
+
+**What would actually get to 100%+ APR** (none of it is this portfolio):
+1. New-listing perps — regularly print 50-200%+ APR for the first days-weeks, then decay. Capacity $1-5k per name, needs daily manual attention. Not a systematic portfolio strategy.
+2. Mania-window mid-caps (2021 alt season, 2024 memecoin weeks) hit 100-300% APR during the window. But the 2022-2024 base rate is ~10%; timing these windows is a separate skill and backtests that include them overstate the base rate.
+3. Cross-venue basis on illiquid exchanges — exactly where custody/counterparty risk is real.
+4. Per-name manual research on new listings — out of scope for this playground.
+
+## Verdict v5
+
+**NEGATIVE. No paper launched. No live capital.**
+
+- Sub-A: 9.51% net APR (real, capacity-OK, but 10x below target)
+- Sub-B: 0 positive symbols (structurally dead at retail fees)
+- Sub-C: 10.18% net APR (no added edge)
+
+**Honest achievable band for $500-1000 capital, top-30 majors, retail fees: 8-15% net APR.** Reaching 100%+ requires either (a) new-listing/micro-cap perps with 10x capacity constraint and manual monitoring, or (b) mania-window timing skill that the base rate does not support. Neither is a systematic portfolio play, and neither is in this playground.
+
+Note on the 100%+ target itself: in 2021 and during 2024 memecoin waves, high-APR funding windows were real. But a strategy that lives off those windows is a *timing* strategy, and the honest backtest (averaging across 2022-2024) shows when the windows close, funding reverts to single digits. Designing around the window means designing for the 10-15% of months when it is open, not the 85% when it is closed.

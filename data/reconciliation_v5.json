@@ -1,0 +1,32 @@
+{
+  "adv_24h_usd": {
+    "ARB": 78950603.745451,
+    "OP": 30900400.255068,
+    "UNI": 141945094.509,
+    "LINK": 93989226.738,
+    "FIL": 136577630.57382
+  },
+  "data_quality": {
+    "binance_files": 28,
+    "bybit_files": 23,
+    "binance_events": 90346,
+    "bybit_events": 75601,
+    "arb_gap_median_h": 8.0,
+    "arb_gap_max_h": 8.000007222222223
+  },
+  "conclusions": {
+    "sub_a_net_apr": 9.51,
+    "sub_b_net_apr": 0.0,
+    "sub_c_net_apr": 10.18,
+    "best_available_band": "8-15% net APR",
+    "target_100_achievable": false,
+    "sub_a_capacity_ok": true,
+    "sub_b_no_edge": true,
+    "sub_a_risks_excluded": [
+      "funding_flip_vol",
+      "basis_dislocation",
+      "liquidation_gap",
+      "single_venue_custody"
+    ]
+  }
+}
