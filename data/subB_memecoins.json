@@ -1,0 +1,114 @@
+{
+  "threshold_apr": 20.0,
+  "memes_with_data": 9,
+  "per_coin": {
+    "BOME": {
+      "n_events": 2000,
+      "events_per_day": 6.01,
+      "days": 334,
+      "mean_apr_all": 15.6,
+      "active_days_pct": 18.6,
+      "switches": 6,
+      "gross_apr": 7.44,
+      "fee_apr": 2.62,
+      "net_apr": 4.82
+    },
+    "BONK": {
+      "n_events": 3000,
+      "events_per_day": 6.01,
+      "days": 501,
+      "mean_apr_all": 18.45,
+      "active_days_pct": 23.4,
+      "switches": 12,
+      "gross_apr": 13.36,
+      "fee_apr": 3.5,
+      "net_apr": 9.87
+    },
+    "DOGE": {
+      "n_events": 3288,
+      "events_per_day": 3.0,
+      "days": 1096,
+      "mean_apr_all": 9.16,
+      "active_days_pct": 9.7,
+      "switches": 14,
+      "gross_apr": 3.14,
+      "fee_apr": 1.86,
+      "net_apr": 1.28
+    },
+    "FLOKI": {
+      "n_events": 2000,
+      "events_per_day": 3.0,
+      "days": 668,
+      "mean_apr_all": 5.77,
+      "active_days_pct": 13.6,
+      "switches": 18,
+      "gross_apr": 5.32,
+      "fee_apr": 3.93,
+      "net_apr": 1.38
+    },
+    "MEME": {
+      "n_events": 3000,
+      "events_per_day": 6.01,
+      "days": 501,
+      "mean_apr_all": 18.51,
+      "active_days_pct": 26.7,
+      "switches": 12,
+      "gross_apr": 11.81,
+      "fee_apr": 3.5,
+      "net_apr": 8.31
+    },
+    "PEPE": {
+      "n_events": 2000,
+      "events_per_day": 3.0,
+      "days": 668,
+      "mean_apr_all": 15.15,
+      "active_days_pct": 24.4,
+      "switches": 24,
+      "gross_apr": 10.96,
+      "fee_apr": 5.25,
+      "net_apr": 5.71
+    },
+    "SHIB": {
+      "n_events": 4000,
+      "events_per_day": 3.0,
+      "days": 1334,
+      "mean_apr_all": 6.7,
+      "active_days_pct": 10.7,
+      "switches": 20,
+      "gross_apr": 3.59,
+      "fee_apr": 2.19,
+      "net_apr": 1.4
+    },
+    "TURBO": {
+      "n_events": 2000,
+      "events_per_day": 6.01,
+      "days": 334,
+      "mean_apr_all": 8.19,
+      "active_days_pct": 13.8,
+      "switches": 6,
+      "gross_apr": 4.12,
+      "fee_apr": 2.62,
+      "net_apr": 1.49
+    },
+    "WIF": {
+      "n_events": 3000,
+      "events_per_day": 6.01,
+      "days": 501,
+      "mean_apr_all": 23.72,
+      "active_days_pct": 25.3,
+      "switches": 8,
+      "gross_apr": 18.84,
+      "fee_apr": 2.33,
+      "net_apr": 16.51
+    }
+  },
+  "aggregate": {
+    "n_coins": 9,
+    "mean_gross_apr": 8.73,
+    "mean_net_apr": 5.64,
+    "sharpe": 5.557,
+    "max_dd_pct": -0.01,
+    "coins_above_50": 0
+  },
+  "passes_50_apr_target": false
+}

@@ -1,0 +1,109 @@
+{
+  "tickers": {
+    "WIF": {
+      "symbol": "WIF/USDT:USDT",
+      "quote_volume_24h": 13365418.96466,
+      "bid_ask_spread_bps": null
+    },
+    "SATS": {
+      "symbol": "1000SATS/USDT:USDT",
+      "quote_volume_24h": 1166302.26883747,
+      "bid_ask_spread_bps": null
+    },
+    "JTO": {
+      "symbol": "JTO/USDT:USDT",
+      "quote_volume_24h": 10528519.2879,
+      "bid_ask_spread_bps": null
+    },
+    "TON": {
+      "error": "unavailable"
+    },
+    "PYTH": {
+      "symbol": "PYTH/USDT:USDT",
+      "quote_volume_24h": 14465564.32151,
+      "bid_ask_spread_bps": null
+    },
+    "BONK": {
+      "symbol": "1000BONK/USDT:USDT",
+      "quote_volume_24h": 19129875.55085,
+      "bid_ask_spread_bps": null
+    },
+    "MEME": {
+      "symbol": "MEME/USDT:USDT",
+      "quote_volume_24h": 1792829.5757544,
+      "bid_ask_spread_bps": null
+    },
+    "BOME": {
+      "symbol": "BOME/USDT:USDT",
+      "quote_volume_24h": 8372368.9041948,
+      "bid_ask_spread_bps": null
+    },
+    "TIA": {
+      "symbol": "TIA/USDT:USDT",
+      "quote_volume_24h": 59766045.9719,
+      "bid_ask_spread_bps": null
+    },
+    "EIGEN": {
+      "symbol": "EIGEN/USDT:USDT",
+      "quote_volume_24h": 11379979.84587,
+      "bid_ask_spread_bps": null
+    },
+    "W": {
+      "symbol": "W/USDT:USDT",
+      "quote_volume_24h": 17051472.2400472,
+      "bid_ask_spread_bps": null
+    },
+    "TURBO": {
+      "symbol": "TURBO/USDT:USDT",
+      "quote_volume_24h": 1610520.90184,
+      "bid_ask_spread_bps": null
+    },
+    "DOGE": {
+      "symbol": "DOGE/USDT:USDT",
+      "quote_volume_24h": 276704546.1327,
+      "bid_ask_spread_bps": null
+    },
+    "PEPE": {
+      "symbol": "1000PEPE/USDT:USDT",
+      "quote_volume_24h": 341734279.1363852,
+      "bid_ask_spread_bps": null
+    }
+  },
+  "thinnest_name": "SATS",
+  "thinnest_adv": 1166302.26883747,
+  "delisting_check": {
+    "alive": [
+      "APT",
+      "OP",
+      "ARB",
+      "SUI",
+      "WLD",
+      "PYTH",
+      "TIA",
+      "SEI",
+      "JTO",
+      "BLUR",
+      "INJ",
+      "WIF",
+      "BONK",
+      "PEPE",
+      "FLOKI",
+      "BOME",
+      "ENA",
+      "W",
+      "TON",
+      "EIGEN"
+    ],
+    "gone": []
+  },
+  "funding_frequency": {
+    "symbols_3_per_day": 12,
+    "symbols_6_per_day": 13,
+    "note": "4h-funding symbols (6/day) were initially under-counted by 3x in mean_apr column; aggregate was correct"
+  },
+  "sub_a_net": 12.23,
+  "sub_b_net": 5.64,
+  "sub_c_net": 5.61,
+  "passes": false,
+  "conclusion": "Realistic band 5-15% net APR across all tested universes. 100%+ not available systematically."
+}

@@ -506,3 +506,152 @@ Sub-C == Sub-A with a slightly different weighting. No independent edge from com
 **Honest achievable band for $500-1000 capital, top-30 majors, retail fees: 8-15% net APR.** Reaching 100%+ requires either (a) new-listing/micro-cap perps with 10x capacity constraint and manual monitoring, or (b) mania-window timing skill that the base rate does not support. Neither is a systematic portfolio play, and neither is in this playground.
 
 Note on the 100%+ target itself: in 2021 and during 2024 memecoin waves, high-APR funding windows were real. But a strategy that lives off those windows is a *timing* strategy, and the honest backtest (averaging across 2022-2024) shows when the windows close, funding reverts to single digits. Designing around the window means designing for the 10-15% of months when it is open, not the 85% when it is closed.
+
+
+---
+
+# v6 — New listings + memecoins funding arb (target 50-200% net APR): NEGATIVE
+
+Premise was: majors cap at 7-14% APR, but new perp listings and memecoins print 30-300%. Tested on 25 new listings and 9 memecoins. **Neither universe reaches 50%. Best honest result: 12.23% net APR (new listings, naive equal-weight).**
+
+## Data
+
+New perp listings, Binance funding, first 90 days post-listing: **20 coins** requested, **25 files** after adding 1000-prefix memes (BONK/PEPE/FLOKI/SHIB/SATS live under `1000*` symbols on Binance futures — this mattered, see the bug section).
+
+Memecoins: BOME, BONK, DOGE, FLOKI, MEME, PEPE, SHIB, TURBO, WIF (9 with data; MOG has no Binance futures market).
+
+## Bug found and fixed mid-analysis (documented for honesty)
+
+My first pass computed APR as `mean(rate) * 3 * 365`. **That is only right for 8h funding.** Binance moved many alt perps to **4h funding (6 events/day)** during 2023-24. An audit showed **12 symbols at 3/day and 13 at 6/day** — so the per-coin APR column was understated by 2x on half the universe. The *aggregate* numbers were computed from daily-summed rates and were correct throughout; only the per-coin display column was wrong. The table below uses the corrected `events_per_day` factor. Audit saved at `data/funding_frequency_audit.csv`.
+
+## Sub-A — new listings, first 90 days, delta-neutral
+
+$100/coin, hold long spot + short perp, exit when 7d rolling funding turns negative, 40 bps round-trip per position.
+
+| coin | listing | ev/day | mean APR % | active % | switches | gross APR | fee APR | **net APR** |
+|------|---------|--------|-----------|----------|----------|-----------|---------|-------------|
+| WIF | 2024-01-18 | 6.1 | +94.87 | 98 | 1 | +90.98 | 1.60 | +89.38 |
+| SATS | 2023-12-12 | 6.1 | +49.65 | 98 | 1 | +48.63 | 1.60 | +47.02 |
+| JTO | 2023-12-08 | 6.1 | +44.19 | 98 | 1 | +40.97 | 1.60 | +39.37 |
+| TON | 2024-03-01 | 6.1 | +44.26 | 90 | 3 | +44.16 | 4.81 | +39.35 |
+| PYTH | 2023-11-22 | 6.1 | +41.51 | 98 | 1 | +39.19 | 1.60 | +37.59 |
+| BONK | 2023-11-22 | 6.1 | +38.38 | 90 | 5 | +41.18 | 8.02 | +33.15 |
+| MEME | 2023-11-03 | 6.1 | +30.10 | 98 | 1 | +28.92 | 1.60 | +27.32 |
+| BOME | 2024-03-16 | 6.0 | +26.88 | 99 | 1 | +26.16 | 1.62 | +24.54 |
+| TIA | 2023-10-31 | 6.1 | +17.97 | 80 | 4 | +23.37 | 6.42 | +16.95 |
+| EIGEN | 2024-10-01 | 6.1 | +17.72 | 99 | 1 | +16.78 | 1.60 | +15.18 |
+| W | 2024-04-03 | 6.1 | +16.43 | 97 | 3 | +15.15 | 4.81 | +10.34 |
+| TURBO | 2024-05-30 | 6.1 | +15.24 | 96 | 3 | +14.19 | 4.81 | +9.38 |
+| FLOKI | 2023-05-06 | 3.0 | +8.33 | 91 | 1 | +8.65 | 1.60 | +7.05 |
+| ARB | 2023-03-23 | 3.0 | +8.19 | 88 | 3 | +7.52 | 4.81 | +2.71 |
+| SEI | 2023-08-16 | 3.0 | -14.63 | 59 | 5 | +8.24 | 8.02 | +0.21 |
+| BLUR | 2023-04-27 | 3.0 | +3.15 | 76 | 5 | +7.22 | 8.02 | -0.80 |
+| PEPE | 2023-05-05 | 3.0 | -0.12 | 76 | 5 | +6.05 | 8.02 | -1.97 |
+| WLD | 2023-07-24 | 3.0 | -12.63 | 15 | 2 | +0.48 | 3.21 | -2.73 |
+| SUI | 2023-05-03 | 3.0 | -4.90 | 40 | 4 | +2.83 | 6.42 | -3.59 |
+| APT | 2022-10-18 | 3.0 | -26.74 | 14 | 5 | +0.73 | 8.02 | -7.29 |
+| SHIB | 2022-01-01 | 3.0 | +3.39 | 64 | 7 | +3.69 | 11.23 | -7.54 |
+| OP | 2022-06-01 | 3.0 | +0.41 | 59 | 10 | +3.18 | 16.04 | -12.87 |
+| DOGE | 2022-01-01 | 3.0 | +1.85 | 64 | 13 | +2.87 | 20.86 | -17.99 |
+| ENA | 2024-04-02 | 6.1 | -34.17 | 16 | 12 | +0.92 | 19.25 | -18.33 |
+| INJ | 2022-08-16 | 3.0 | -10.38 | 41 | 14 | +1.73 | 22.46 | -20.73 |
+
+**Aggregate (equal-weight 25 coins): gross +19.35%, net +12.23%.**
+Coins above 30% net: **6**. Above 50%: **1**. Best: **WIF +89.38%**.
+
+**Reported Sharpe 9.14 is an artifact** — 91-day windows give few independent observations and funding vol is not in the model. Ignore it.
+
+**Sub-A PASS (>50% net APR): NO.**
+
+What this actually shows: new listings DO have elevated funding — WIF at 89% net, SATS 47%, JTO 39%, TON 39%, PYTH 38%. But six coins are **negative** (ENA −18%, INJ −21%, DOGE −18%, OP −13%, SHIB −8%, APT −7%) because funding went negative for long stretches right after listing. Naive equal-weight pays for that. Cherry-picking the winners would produce ~37% — but that requires knowing ex-ante which listings will have positive funding, and I have not built or validated any such classifier. Reporting 37% as "achievable" would be a lie.
+
+## Sub-B — memecoins, whole history, threshold 20% APR
+
+Hold only when 7-day rolling funding APR > 20%; exit below.
+
+| coin | mean APR all % | active % | switches | gross APR | **net APR** |
+|------|----------------|----------|----------|-----------|-------------|
+| WIF | +23.72 | 25.3 | 8 | +18.84 | +16.51 |
+| BONK | +18.45 | 23.4 | 12 | +13.36 | +9.87 |
+| MEME | +18.51 | 26.7 | 12 | +11.81 | +8.31 |
+| PEPE | +15.15 | 24.4 | 24 | +10.96 | +5.71 |
+| BOME | +15.60 | 18.6 | 6 | +7.44 | +4.82 |
+| TURBO | +8.19 | 13.8 | 6 | +4.12 | +1.49 |
+| SHIB | +6.70 | 10.7 | 20 | +3.59 | +1.40 |
+| FLOKI | +5.77 | 13.6 | 18 | +5.32 | +1.38 |
+| DOGE | +9.16 | 9.7 | 14 | +3.14 | +1.28 |
+
+**Aggregate (equal-weight 9 memes): gross +8.73%, net +5.64%.**
+All 9 positive, best WIF 16.51%. Coins above 50%: **0**.
+
+**Sub-B PASS (>50% net APR): NO.**
+
+The "memecoins have crazy funding" narrative does not survive the base rate. Mean across 9 memes over full history is 8.7% gross. The 100-300% figures people quote come from specific mania weeks — the threshold filter catches them (active only 10-27% of days) and they still pay single digits net per year. Survivorship is doing the work in that narrative.
+
+## Sub-C — combined dynamic top-5
+
+Every day: rank all 50 symbols by 7-day rolling funding APR, hold top-5 with APR > 20%, equal weight.
+
+| metric | value |
+|--------|-------|
+| universe | 50 symbols |
+| days tracked | 1334 |
+| days with ≥1 position | 244 (18.3%) |
+| mean active positions/day | 0.71 |
+| switches | 296 |
+| gross APR | +8.85% |
+| fee drag | 3.24% |
+| **net APR** | **+5.61%** |
+| CAGR | +5.76% |
+| max DD | -4.26% |
+
+**Sub-C PASS (>50% net APR): NO.**
+
+The structural problem: 80% of days, nothing in a 50-symbol universe qualifies above the 20% APR threshold. The strategy lives in its best 15-20% of days and the rest is idle capital.
+
+## Honest reconciliation
+
+**Capacity: PASS, unambiguously.** Measured 24h ADV on Binance futures:
+- WIF $13.4M, JTO $10.5M, PYTH $14.5M, BONK $19.1M, TIA $59.8M, EIGEN $11.4M, W $17.1M
+- Thinnest: **SATS $1.17M** → $100 = 0.0086% of ADV
+- DOGE $277M, PEPE $342M → $100 is 0.0000% of ADV
+
+At $500-1000 total across 5 names you are below 0.01% of ADV everywhere. **Liquidity is not the binding constraint.** This is worth stating clearly because the original hypothesis blamed capacity; the data says capacity is fine and the *edge* is the problem.
+
+**Survivorship bias in my universe selection — I must flag this.** I picked the 20 new listings because I already knew they listed on Binance and are still trading. All 20 are still alive today. A real ex-ante scan at listing time would have included coins that never made it to Binance futures or were delisted. So Sub-A's 12.23% net is an **upper bound**, not an unbiased estimate.
+
+**Not modeled, and these cut the number down, not up:**
+- Listing-week bid/ask spreads of 20-100 bps vs the 5 bps I applied. `fetch_ticker` on binanceusdm returned `bid=ask` (spread 0.00 bps) which is a data limitation, not evidence of tight markets. Real listing-week spreads are much wider.
+- 10%+ flash moves in the first days break delta-neutral: the short perp leg margin-calls while the spot hedge is still settling. On $100 notional a 10% dislocation is $10 — a full year of carry at 10% APR.
+- One-week-post-listing ADV can be under $500k; $100 is fine (0.02%) but $1000 across 5 names becomes 0.1-0.2% and slippage bites.
+
+**Fees are not the killer here.** Sub-A fee drag is 1.6% APR on most coins (1-3 switches in 90 days); Sub-C total fee drag 3.24% APR. The killer is that gross funding is only 8-19%, not 100%.
+
+## Verdict v6
+
+**NEGATIVE. No paper launched. No live capital.**
+
+| sub-strategy | net APR | target | result |
+|--------------|---------|--------|--------|
+| A new listings | +12.23% | >50% | FAIL |
+| B memecoins | +5.64% | >50% | FAIL |
+| C combined | +5.61% | >50% | FAIL |
+
+**Recommended strategy: A (new listings), but at ~12% net, not 50%+.**
+
+## Reality check for the user
+
+The framing "$500-1000 × 100% APR = $500-1000/year" is arithmetically right, but the 100% is not there. At the measured ~10% net APR:
+
+- $500 capital → **~$50/year**
+- $1000 capital → **~$100/year**
+
+Tangible experience: **yes** — you would learn the full mechanics (spot+perp legs, funding accrual, margin management, exchange operations). Earnings: **no** — $50-100/year does not justify the operational risk or the time.
+
+Scale path: this does not scale by adding capital, because the APR itself is the constraint, not capacity. Scaling would require either (a) manual per-listing selection inside the launch window with $1-5k per name, which is a job not a strategy, or (b) a fundamentally different edge.
+
+## Six iterations, one number
+
+Every universe tested — majors (v5), new listings (v6-A), memecoins (v6-B), combined dynamic (v6-C) — converges to **5-15% net APR** at retail fees. The 100%+ target is a tail phenomenon that cannot be systematically harvested at this capital size. If it were harvestable, the spread would already be closed by desks with maker rebates and colocation; that is exactly what v5's cross-exchange test showed (0.6 bps observed vs 40 bps breakeven).
+
+The honest conclusion after ~600 backtests across 6 iterations: crypto funding arbitrage is a ~10% APR carry trade for retail. It is a real, low-risk return — roughly comparable to a high-yield savings account with materially more operational risk. It is not a path to 100%+ annual returns on $500-1000.
