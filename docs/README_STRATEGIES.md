@@ -655,3 +655,153 @@ Scale path: this does not scale by adding capital, because the APR itself is the
 Every universe tested — majors (v5), new listings (v6-A), memecoins (v6-B), combined dynamic (v6-C) — converges to **5-15% net APR** at retail fees. The 100%+ target is a tail phenomenon that cannot be systematically harvested at this capital size. If it were harvestable, the spread would already be closed by desks with maker rebates and colocation; that is exactly what v5's cross-exchange test showed (0.6 bps observed vs 40 bps breakeven).
 
 The honest conclusion after ~600 backtests across 6 iterations: crypto funding arbitrage is a ~10% APR carry trade for retail. It is a real, low-risk return — roughly comparable to a high-yield savings account with materially more operational risk. It is not a path to 100%+ annual returns on $500-1000.
+
+
+---
+
+# v7 — Covered calls on BTC + air drops research: regime-dependent, NOT 100%
+
+Funding arb was closed after 6 iterations (5-15% ceiling). This iteration tested a **different edge class**: options premium harvesting and airdrops.
+
+Two data notes up front, both factual:
+
+1. **Deribit production API is blocked from this host.** `www.deribit.com`, `deribit.com`, `api.deribit.com` all return connection timeout; only `https://test.deribit.com` responds. **Deribit testnet DVOL is unusable** — validation against known dates showed 2024-01-10 at 169.6% (real: ~45-50%, ETF approval day crush) and 2024-12-30 at 111.5% (real: ~55-60%), max 240% over the history.
+2. **I used Binance options instead** (`eapi.binance.com`), which is reachable and returns real live `markIV`/`markPrice`. Validation: Black-Scholes recomputed from Binance's own markIV differs from its markPrice by **12.6% mean absolute** — so I used BS for path simulation but anchored every premium estimate to the **real measured market premium**.
+
+## Real measured facts (the anchor for everything below)
+
+| metric | value | source |
+|--------|-------|--------|
+| BTC spot | $80,757 | Binance index, live |
+| Real ATM IV, 5-30 DTE | 33.8% | Binance markIV, live |
+| Real ATM IV, 30-60 DTE | 35.5% | Binance markIV, live |
+| Real ATM IV, 60-95 DTE | 36.4% | Binance markIV, live |
+| **Real +10% OTM 30d call premium** | **0.84-1.02% of spot** | Binance markPrice, live |
+| BTC realized vol RV30, 2023-24 | **46.9%** (2023: 42.3%, 2024: 51.0%) | Binance spot, computed |
+
+**The variance risk premium is NEGATIVE right now: IV 33.8-36.4% vs RV 46.9%.** Selling calls collects less than realized vol implies. For a premium-selling trade you want IV > RV; today it is the opposite, by 10-13 percentage points.
+
+## Covered calls backtest — REAL BTC paths 2023-2024
+
+$100 notional, sell +10% OTM 30-day call, non-overlapping (real single position), P&L = spot gain + premium − upside given away. 23 periods over 1.89 years.
+
+**Real measured premium basis (0.84%/month):**
+
+| metric | value |
+|--------|-------|
+| periods | 23 |
+| gross premium | 0.81% per 30d period |
+| **premium-only APR** | **+9.85%** |
+| total CC APR (incl. BTC beta) | +40.94% |
+| Sharpe | 1.38 |
+| max DD | −15.49% |
+| positive periods | 60.9% |
+| assignment rate | 39.1% |
+| **buy & hold CAGR same window** | **+112.10%** |
+| **edge vs buy & hold** | **−71.16pp** |
+
+**The 40.94% is not alpha. Decomposition: `strong_up` periods contribute +51.47% APR of it — that is BTC beta, not option edge.** Premium-only is 9.85%, which is the only part that is not market exposure.
+
+### Regime breakdown (the decisive table)
+
+| regime | n | avg BTC move | CC return | B&H return | premium | assignment | CC edge |
+|--------|---|--------------|-----------|------------|----------|------------|---------|
+| 1_strong_up (>+10%) | 9 | +22.3% | +10.81% | +22.34% | +0.81 | 100% | -11.53pp |
+| 2_mild_up (0..+10%) | 5 | +6.2% | +6.99% | +6.18% | +0.81 | 0% | +0.81pp |
+| 3_mild_down (-10..0%) | 6 | -4.1% | -3.27% | -4.08% | +0.81 | 0% | +0.81pp |
+| 4_strong_down (<-10%) | 3 | -12.6% | -11.75% | -12.56% | +0.81 | 0% | +0.81pp |
+
+Covered calls **win in 3 of 4 regimes** — mild_up, mild_down, strong_down — each by exactly +0.81pp per period (the premium). They **lose badly in strong_up (−11.53pp)** because 100% of those periods get assigned and all upside above +10% is forfeited.
+
+In 2023-24, strong_up was **39% of periods** (9 of 23). That is what turns a +0.81pp/period income strategy into a −71pp laggard versus just holding BTC.
+
+### Zero-drift counterfactual (the regime CC is designed for)
+
+200 simulated 2-year paths, same realized vol (46.9%), zero drift:
+
+| | median | mean | p10 | p90 |
+|---|--------|------|-----|-----|
+| covered call | 0.674x | 0.747x | 0.364x | 1.165x |
+| buy & hold | 0.879x | 1.001x | 0.362x | 1.687x |
+
+**CC beats buy & hold in only 20% of zero-drift trials.** Mean excess −25.4pp over 2 years. So even in the ideal regime (flat market), covered calls underperform holding spot at 47% vol — because the call you sold is priced for 35% vol while the market moves at 47%.
+
+### What IV would make this work
+
+| IV | +10% OTM 30d premium | annualized |
+|----|---------------------|------------|
+| 35% (today, real) | 0.96% | +11.7% |
+| 45% | 1.81% | +22.0% |
+| 55% | 2.76% | +33.6% |
+| 65% | 3.79% | +46.1% |
+| 80% | 5.40% | +65.7% |
+
+Covered calls become a genuine 15%+ income trade at IV 55-60% — a high-vol regime. At today's 35%, gross premium carry is ~10% APR.
+
+**Covered calls verdict: does NOT pass as a systematic strategy.**
+- Premium-only APR 9.85% < 10% threshold
+- Total APR 40.94% passes only because it includes BTC beta (strong_up contributes 51pp)
+- Edge vs buy&hold is −71pp — you would be better off simply holding BTC
+- Sharpe 1.38 passes numerically, but it is measuring BTC beta + a small premium, not option alpha
+
+## Air drops — research, not a backtestable strategy
+
+**State this plainly: airdrops cannot be backtested.** Any number presented as "expected airdrop yield" is a forecast dressed as data. What follows is verified live data plus public-record history, explicitly labelled.
+
+### Live verified DeFi yields (DefiLlama, fetched this session)
+
+Stablecoin pools >15% APY with >$5M TVL (artifacts like 7530% APY filtered out):
+
+| protocol | symbol | chain | APY | base | reward | TVL |
+|----------|--------|-------|-----|------|--------|-----|
+| axis | SUSDX | Ethereum | 15.1% | 15.1% | 0.0% | $52.2M |
+| morpho-blue | FCUSDT | Ethereum | 15.8% | 9.3% | 6.5% | $43.7M |
+| pendle-v2 | APYUSD | Ethereum | 16.0% | 16.0% | 0.0% | $18.3M |
+| veranta | USDC | Base | 27.5% | 27.5% | 0.0% | $9.8M |
+| pendle-v2 | SUSDX | Ethereum | 17.3% | 17.3% | 0.0% | $7.0M |
+| pendle-v2 | SUSDX | Ethereum | 16.3% | 16.2% | 0.1% | $7.0M |
+
+Non-stable, IL risk: Uniswap v3 WETH-USDC on Base 30.1% APY ($159M TVL); nest-cl WHYPE-USDC on Hyperliquid 46.4% APY ($12.2M TVL, 100% reward-token emissions).
+
+### Concrete opportunities ($0 entry, with honest status labels)
+
+| opportunity | entry cost | expected range | status | risk |
+|-------------|-----------|----------------|--------|------|
+| Hyperliquid points season | $0 (trade or provide liquidity) | $500-5,000 (2024 HYPE drop precedent) | VERIFY CURRENT | capital at risk trading; sybil filters |
+| Ethena sUSDe farming | $0 setup, needs USDe capital | $100-1,000 per season + 10-25% APY base | ONGOING | USDe peg risk; funding rate dependency |
+| Pendle PT fixed yield | $0 setup, capital required | 15-30% fixed APR to maturity | LIVE (verified) | smart contract; PT liquidity |
+| Morpho Blue curated vaults | $0 setup, capital required | 8-23% APY stablecoin | LIVE (verified) | curator risk; smart contract |
+| Aerodrome USDC-AERO LP | $0 setup, capital required | 60-120% APY (reward-heavy) | LIVE (verified) | IL on AERO; reward token price |
+| Monad / MegaETH testnet | $0 (gas-free testnet) | $0-2,000 if drop happens | SPECULATIVE | may never drop; sybil filters |
+
+### Historical reference drops (public record, NOT a forecast)
+
+Arbitrum $800-2,000/address | Optimism $400-1,500 | Jito $500-3,000 | Ethena $500-5,000 | Jupiter $200-2,000 | Wormhole $300-1,500 | Blur $500-3,000.
+
+**Airdrop reality check:**
+- Realized $500-3,000 per major drop **for addresses that qualified**
+- A significant share of addresses get **zero** — sybil filtering, missed snapshots, retroactive rule changes
+- Active farmer: **$2,000-10,000/year** if running 10-20 tracked projects across multiple wallets, 2-4h/week
+- Passive: **$0** — airdrops require active participation
+- **Not scaleable**: per-address caps typically $1,000-5,000; more wallets = more yield but sybil risk
+- **Evidence quality: LOW.** This is research, not a tested strategy
+
+## Verdict v7
+
+| strategy | realistic APR | passes | why |
+|----------|---------------|--------|-----|
+| Covered calls (premium only) | **+9.85%** | NO | below 10%; IV<RV so premium is underpriced |
+| Covered calls (total incl. beta) | +40.94% | NO (as alpha) | 51pp of it is BTC beta, edge vs B&H −71pp |
+| Air drops | $0 passive / $2-10k active | NOT BACKTESTABLE | per-address caps, sybil risk, requires labour |
+
+**Recommended: covered calls as a small income overlay IF you expect a mild or flat regime, sized so that a strong_up month does not hurt — not as a return engine. Air drops as a side activity, $0 entry, manual.**
+
+## Reality check for the user
+
+**$1,000 in covered calls at today's real IV yields ~$8.40/month gross (0.84%), ~$101/year.** That is tangible weekly cash flow — but in a strong up-move you forfeit everything above +10%, which in this sample cost −$11.53 per $100 notional per period. You are paid ~$0.81/period to cap your own upside during a 39%-of-the-time regime.
+
+Air drops: $0 entry, potential $500-3,000 per successful drop, but requires 10-20h setup and 2-4h/week, and many attempts pay zero.
+
+**Neither is a systematic 100%+ strategy.** After seven iterations and roughly 600 backtests, the pattern across every retail-accessible class tested — funding arb (majors, new listings, memecoins), cross-sectional momentum, TA on majors, covered calls — is the same: 5-15% APR is the realistic retail ceiling. Anything above that requires manual edge (airdrop/new-listing monitoring, which is a job), tail risk (selling options into a regime that occasionally destroys the account), or structural advantage (data exclusivity, legal infrastructure) that retail does not have access to.
+
+That is a statement about market structure, not about our weakness. If 100%+ systematic APR were available at $500-1000 with public APIs, it would already be arbitraged away — which is exactly what the v5 cross-exchange test demonstrated empirically (0.6 bps observed spread vs 40 bps breakeven).
