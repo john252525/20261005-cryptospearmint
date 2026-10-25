@@ -406,6 +406,71 @@ philosophy is stop-early, not push-through.
 
 ---
 
+## Page 9.5 — Parallel retail track: what was tested
+
+Independent track run on `176.12.79.100` (isolated from canonical
+`109.172.6.35`) — 7 iterations of retail-facing crypto strategies. No
+interference with the main structural-edge research, no capital deployed,
+only engineering time on a second server. Result: a **retail ceiling**
+with concrete numbers.
+
+### 7 iterations tested
+
+| Iteration | What was tested | Result |
+|---|---|---|
+| v1 — TA baseline | 10 TA strategies x 3 crypto pairs x 2022-2024 | Top-3 (SOL) DD 47-55%; not tradeable |
+| v2 — Anti-overfit (bear 2018-2021) | Same strategies, added SL/TP -2%/+5% | SL/TP structurally kills edge: delta Sharpe -0.68 |
+| v3 — Cross-sectional momentum | 32 crypto pairs, rank-based long/short | Gross Sharpe positive but fee killer; net Sharpe 0.86 / 0.52 |
+| v4-v5 — Funding arb (majors) | BTC/ETH/SOL perp funding harvest | Mean APR 7-14%; 100-200% target impossible on this universe |
+| v6 — Funding arb (new listings + memecoins) | Expanded to newly listed pairs, memecoins | 5-15% net APR; tail-distributed (WIF +89% vs ENA -18%); not reliable edge |
+| v7 — Covered calls (BTC) | Monthly systematic covered calls | Net APR 9.85% premium-only at IV 35% vs RV 47% (negative variance premium). Sharpe 1.38 total but that is beta not alpha. strong_up regime loses -11.53pp vs buy-and-hold |
+
+### Retail ceiling: 5-15% APR
+
+Ceiling for retail systematic crypto is **5-15% APR**, achievable only
+via funding-arb on majors plus covered calls. **100%+ systematic APR is
+not achievable** — capital would compress any such opportunity to ~10%,
+which is exactly what has happened on the funding-arb side. High numbers
+in retail discourse are historical (pre-2020), market-making at scale
+(infrastructure we do not have), or fabrications.
+
+This is **not a failure of our team** — it is the structure of the
+market. Institutional capital sits above us, absorbs any systematic
+>=15% APR opportunity, and leaves 5-15% as the ceiling for anyone
+outside the professional market-making tier. Consistent with Section 2:
+every place where an easy edge existed, capital has already compressed
+it.
+
+### Three tangible paths that remain
+
+1. **Systematic covered calls on BTC** — capital $200-500, return $2-5
+   per month at current vol, net APR ~9.85%. Paper runner already
+   deployed. Place-holder, not a business. Caveat: strong_up regime
+   incurs -11.53pp opportunity cost vs buy-and-hold.
+
+2. **Airdrops / token distributions** — $0 entry capital, $500-3,000
+   expected per drop, 100-500% return on $0 initial. Manual work 2-4
+   hr/week. Retail side activity, not a scalable fund strategy.
+
+3. **Full structural edge via data exclusivity** — $8-15k legal gate,
+   then $200-500k vendor license on the success path. The only remaining
+   route to systematic double-digit returns that scales past $1M.
+
+### Cost to user from retail track: $0
+
+All 7 iterations ran on engineering resources with $0 initial capital
+(paper trading only). No live money deployed. Value produced: 7
+iterations documented, infrastructure built and reused by the main track
+(monitoring, paper trading, risk engine all originated from this work),
+retail ceiling now a known number that will not be re-explored.
+
+Strategic implication: further rounds of retail-strategy iteration have
+a hard ceiling of ~10-15% APR. Beyond the covered-call place-holder,
+capital allocated here underperforms a well-run structural-edge
+deployment.
+
+---
+
 ## Page 10 — Five decisions required from you
 
 Each is a discrete yes/no. Two require action today; the rest are
