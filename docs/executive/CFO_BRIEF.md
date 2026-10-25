@@ -425,6 +425,8 @@ with concrete numbers.
 | v6 — Funding arb (new listings + memecoins) | Expanded to newly listed pairs, memecoins | 5-15% net APR; tail-distributed (WIF +89% vs ENA -18%); not reliable edge |
 | v7 — Covered calls (BTC) | Monthly systematic covered calls | Net APR 9.85% premium-only at IV 35% vs RV 47% (negative variance premium). Sharpe 1.38 total but that is beta not alpha. strong_up regime loses -11.53pp vs buy-and-hold |
 
+**Methodology note.** Numbers in the v7 row (Sharpe 1.38, net APR 9.85%) come from `data/covered_calls_final.csv`, which uses measured market premium from Binance options (35% IV, real observed 0.84-1.02%/mo). An earlier run in `data/covered_calls_bt.csv` uses theoretical Black-Scholes pricing with IV floored to RV30; that run reports Sharpe -2.38 and net APR -178.7% because it assumes IV = RV (no variance premium), which is historically false — observed IV is a 10-12 point discount to RV in this dataset. CFO should treat `_final.csv` as the operative scenario; `_bt.csv` is the stress-test worst case and is retained for transparency.
+
 ### Retail ceiling: 5-15% APR
 
 Ceiling for retail systematic crypto is **5-15% APR**, achievable only
