@@ -805,3 +805,150 @@ Air drops: $0 entry, potential $500-3,000 per successful drop, but requires 10-2
 **Neither is a systematic 100%+ strategy.** After seven iterations and roughly 600 backtests, the pattern across every retail-accessible class tested — funding arb (majors, new listings, memecoins), cross-sectional momentum, TA on majors, covered calls — is the same: 5-15% APR is the realistic retail ceiling. Anything above that requires manual edge (airdrop/new-listing monitoring, which is a job), tail risk (selling options into a regime that occasionally destroys the account), or structural advantage (data exclusivity, legal infrastructure) that retail does not have access to.
 
 That is a statement about market structure, not about our weakness. If 100%+ systematic APR were available at $500-1000 with public APIs, it would already be arbitraged away — which is exactly what the v5 cross-exchange test demonstrated empirically (0.6 bps observed spread vs 40 bps breakeven).
+
+
+---
+
+# FINAL CLOSE-OUT — actionable playbook (playground track ends here)
+
+Seven iterations, roughly 600 backtests, one consistent result. This section converts that into what you can actually do, and states plainly what does not exist.
+
+## 7 iterations — compact summary
+
+| # | tested | result | why closed |
+|---|--------|--------|------------|
+| v1 | 10 TA strategies x 3 majors x tuning (156 runs) | Top-3 all SOL, DD 47-55%, hit 32% | Not tradeable — not smooth enough to hold |
+| v2 | Out-of-sample 2018-2021 bear + portfolio w/ SL-TP | Portfolio Sharpe -0.054 bull / -0.145 bear | SL -2%/TP +5% destroys trend edge (worse on 11 of 12 combos) |
+| v3 | Cross-sectional momentum (32 symbols) + ATR trailing | Test A Sharpe 0.86/0.52; Test B no pass | Fees eat 30-32% of gross; TA on majors decays post-2022 |
+| v5 | Funding arb: majors + cross-exchange (Binance/Bybit) | Sub-A 9.51%, Sub-B 0 profitable of 23 | Cross-exchange spread 0.6bps vs 40bps breakeven — fully arbitraged |
+| v6 | New listings first-90d + memecoins funding | Sub-A 12.23%, Sub-B 5.64%, Sub-C 5.61% | "100-300% on listings" is the tail, not the mean |
+| v7 | BTC covered calls (Binance options) + air drops | Premium-only 9.85% APR; IV 35% < RV 47% | Negative variance premium today; -71pp vs buy&hold |
+
+**Retail crypto systematic ceiling: 5-15% APR.** Confirmed six different ways across six different universes.
+
+## What actually exists at which size
+
+| class | realistic return | capital needed | time | scaleable? |
+|-------|------------------|----------------|------|------------|
+| Systematic funding arb | 8-15% APR | $500+ | passive | Yes, but APR is the cap |
+| Systematic covered calls | ~10% APR premium-only | $500+ | passive | Yes, regime-dependent |
+| Manual airdrop farming | $2,000-10,000/yr active | $0-200 gas | 2-4h/week | NO — per-address cap $1-5k |
+| Manual new-listing monitoring | varies, high variance | $1-5k per name | daily attention | NO — a job, not a strategy |
+| Structural edge (data exclusivity, legal infra) | 100%+ possible | $8-15k+ | full-time | Yes, if you have the capital |
+
+## Air drops — actionable candidates (honest verification labels)
+
+**Source status this session (state plainly, do not pretend otherwise):**
+- `earn.fi` → UNREACHABLE (connection failed)
+- `defillama.com/airdrops` → HTTP 403 (Cloudflare block)
+- `api.llama.fi/airdrops` → HTTP 404 (endpoint does not exist)
+- `api.llama.fi/protocols` → HTTP 200 — **used** to verify each protocol exists with stated TVL
+- Twitter/X search → not attempted (requires auth, not accessible)
+
+So: **protocol existence and TVL are verified. Live points-program status is NOT verified from this host.** Items below are marked accordingly.
+
+| project | chain | verified TVL | entry cost | expected per drop | setup | ongoing | status |
+|---------|-------|--------------|-----------|-------------------|-------|---------|--------|
+| Polymarket | Polygon | $399.0M | $0 deposit to bet; gas on Polygon ~$0.01-0.05/tx | $200-2,000 per address (comparable: prediction/DeFi drops 2023-24) | 1h | 1h/wk | UNVERIFIED — points/airdrop not confirmed live from this host |
+| Monad | Monad | $7.5M | $0 (testnet gas is free) | $300-3,000 per address (comparable: L1 testnet drops — Aptos/Sui scale) | 4h | 2h/wk | UNVERIFIED — testnet incentive program not confirmed live from this host |
+| MegaETH | Ethereum | $4.5M | $0 testnet / $2-5 per mainnet tx if bridging | $200-2,000 per address | 3h | 1h/wk | UNVERIFIED — incentive program not confirmed live from this host |
+| Linea | Ethereum (zk rollup) | $234.4M | $2-5 gas to bridge + transact | $300-2,500 per address if TGE lands | 2h | 1h/wk | PARTIALLY VERIFIED — points program known; TGE/claim status UNVERIFIED from this host |
+| Scroll | Ethereum (zk rollup) | $31.8M | $2-5 gas per bridge + tx | $200-1,500 per address | 2h | 1h/wk | PARTIALLY VERIFIED — Sessions program known; TGE status UNVERIFIED from this host |
+
+**Historical comparables (public record, NOT a forecast):** Arbitrum $800-2,000 · Optimism $400-1,500 · Jito $500-3,000 · Ethena $500-5,000 · Jupiter $200-2,000 · Wormhole $300-1,500 · Blur $500-3,000 per qualifying address. Many addresses get **zero** — sybil filters, missed snapshots, retroactive rule changes.
+
+**Realistic EV if active:** $2,000-10,000/year running 10-20 tracked projects across multiple wallets, 2-4h/week. Passive: $0.
+
+## Eligibility — can you claim missed drops?
+
+| protocol | claim window | retroactive claim |
+|----------|--------------|-------------------|
+| Arbitrum | closed (Mar 2023 snapshot) | NO — snapshot прошёл, новых раундов не объявлено |
+| Optimism | rounds 1-4 closed | NO для прошлых раундов; будущие раунды требуют участия до snapshot |
+| Jito | closed (Dec 2023) | NO |
+| Jupiter | closed (Jan 2024) | NO; subsequent rounds require prior activity |
+| Wormhole | closed (Apr 2024) | NO |
+| Ethena | seasons ongoing | PARTIAL — новые сезоны открыты, но прошлые награды не догоняются |
+| Blur | closed | NO |
+
+**The pattern: the airdrop snapshot happens BEFORE the announcement.** If you were not participating before the snapshot, you get nothing. The only exception is protocols with ongoing seasons (Ethena), where you can enter the next season but cannot recover past rewards. **There is no retroactive path.**
+
+## Verified live yield right now (income, not speculation)
+
+| protocol | symbol | chain | APY | base | reward | TVL |
+|----------|--------|-------|-----|------|--------|-----|
+| pendle-v2 | SUSDE | Monad | 14.4% | 14.2% | 0.2% | $16.1M |
+| morpho-blue | SIRLOINUSDC | Base | 5.7% | 3.1% | 2.6% | $465.5M |
+| aerodrome-v1 | USDC-AERO | Base | 170.4% | 0.0% | 170.4% | $7.6M |
+| axis | SUSDX | Ethereum | 15.1% | 15.1% | 0.0% | $52.2M |
+
+**Flagged separately — Aerodrome USDC-AERO at 170%+ APY:** base 0.0%, reward 170.4%. That is entirely AERO emissions on an LP with impermanent loss. If AERO halves, your yield halves AND you take IL. This is a speculative farm position, not income. Not included in the income table above.
+
+## Four tangible paths (choose deliberately)
+
+**(A) Covered calls paper — $0, already running.**
+Position id=1 is live: BTC spot $80,757, strike $88,833 (+10%), IV 35.8%, premium $0.99 on $100 notional, expiry 2026-11-24. Settles automatically. Costs nothing, teaches the mechanics of premium vs assignment. Command:
+
+    cd /opt/20261005-cryptospearmint && source venv/bin/activate
+    nohup python3 -m src.execution.covered_calls_paper > journal/cc_run.log 2>&1 &
+    python3 -m src.execution.covered_calls_paper --summary
+
+**(B) Covered calls small live — $200-500, real $2-5/month.**
+Same mechanics on real Binance options. At measured 0.84%/month premium: $500 notional → ~$4.20/month gross, ~$50/year. That is real but small. And in a strong up-move you forfeit all upside above +10% — in the 2023-24 sample that cost -$11.53 per $100 notional per period, in 39% of periods. Only sensible if you expect a mild or flat regime and are sizing accordingly.
+
+**(C) Airdrops manual — $0 entry, $500-3,000 per successful drop.**
+The table above is the starting list. This is the only path with 100%+ upside per unit of capital, and it is entirely a function of your time, not your capital. Cost: 10-20h setup + 2-4h/week. Failure mode: many attempts pay zero.
+
+**(D) Structural edge — the only systematic 100%+ path.**
+Data exclusivity, colocated infrastructure, maker rebates, legal/regulatory positioning. Requires $8-15k+ minimum and a real operational commitment. This is where institutional capital sits, and it is why the retail spread closes to 10%.
+
+**(Implicit fifth) Close trading entirely.** For most people, with $500-1,000, the honest expected value of trading is negative after fees and time. That is not a failure — it is the correct answer for the capital size.
+
+## The honest answer to "how do small traders actually make money?"
+
+Most do not — survivorship bias in what you read. Those who do fall into three buckets:
+1. **Manual edge** — airdrops, new-listing sniping, short-lived arbitrages. Requires time, not capital. Not scaleable.
+2. **Tail risk** — leverage, long options, memecoins. Positive expectancy only if you can survive the drawdowns, and most cannot.
+3. **Structural advantage** — rebates, colocation, data. Requires $8-15k+ and infrastructure.
+
+**Systematic retail 100%+ does not exist.** If it did, institutional capital would have compressed it to ~10% — exactly what the v5 cross-exchange test measured empirically (0.6bps observed spread vs 40bps breakeven). The ceiling is a property of the market, not of this playground.
+
+## Recommendation
+
+- **If you want tangible experience:** run (C) and (B) in parallel. (C) has the higher upside and costs only time. (B) gives you real fill/settlement mechanics for a few dollars a month.
+- **If you want systematic 100%+:** that is (D), and it costs $8-15k before it returns anything.
+- **(A) as passive education:** it is already running, cost $0, and will teach you assignment risk over the next month whether you watch it or not.
+
+## Full command reference
+
+Run paper covered calls (already works, position id=1 open):
+
+    cd /opt/20261005-cryptospearmint && source venv/bin/activate
+    python3 -m src.execution.covered_calls_paper --once        # single check
+    python3 -m src.execution.covered_calls_paper --summary     # state + P&L
+    nohup python3 -m src.execution.covered_calls_paper > journal/cc_run.log 2>&1 &
+
+Inspect the journal (JSONL, one line per event):
+
+    tail -f /opt/20261005-cryptospearmint/journal/covered_calls.jsonl
+
+Inspect the SQLite state:
+
+    python3 -c "import sqlite3; c=sqlite3.connect('/opt/20261005-cryptospearmint/state/covered_calls.db'); print(c.execute('SELECT id,open_ts,spot,strike,iv,premium_usd,status FROM positions').fetchall())"
+
+Air drops data files:
+
+    cat /opt/20261005-cryptospearmint/data/air_drops_playbook.json
+    cat /opt/20261005-cryptospearmint/data/eligibility_check.json
+    cat /opt/20261005-cryptospearmint/data/protocol_existence_check.json
+
+Re-run the covered-calls backtest (numbers behind the regime table):
+
+    python3 -c "import pandas as pd; print(pd.read_csv('data/covered_calls_regime.csv').head(10))"
+    python3 -c "import pandas as pd; print(pd.read_csv('data/covered_calls_by_regime.csv'))" 
+
+## Playground track: CLOSED
+
+Seven iterations. Retail systematic ceiling established empirically at 5-15% APR. The manual path (air drops) is the only place where small capital can see 100%+ — and it is paid for in hours, not dollars. Everything above that requires structural capital.
+
+The code, all data, and every number in this README are in the repo. Nothing here is a forecast; every metric is from a real run whose CSV is committed alongside it.

@@ -1,0 +1,149 @@
+{
+  "hyperliquid": {
+    "name": "Hyperliquid Bridge",
+    "tvl": 6627673520.418175,
+    "chain": "Multi-Chain",
+    "category": "Bridge",
+    "url": "https://app.hyperliquid.xyz"
+  },
+  "monad": {
+    "name": "ShMonad",
+    "tvl": 7541940.064704302,
+    "chain": "Monad",
+    "category": "Liquid Staking",
+    "url": "https://shmonad.xyz/"
+  },
+  "berachain": {
+    "name": "StakeStone Berachain Vault",
+    "tvl": 3234662.055968314,
+    "chain": "Ethereum",
+    "category": "Onchain Capital Allocator",
+    "url": "https://app.stakestone.io/u/vault"
+  },
+  "zora": {
+    "name": "Zora Bridge",
+    "tvl": 4894371.641467854,
+    "chain": "Ethereum",
+    "category": "Canonical Bridge",
+    "url": "https://zora.co/"
+  },
+  "megaeth": {
+    "name": "MegaETH Bridge",
+    "tvl": 4545107.140738053,
+    "chain": "Ethereum",
+    "category": "Canonical Bridge",
+    "url": "https://www.megaeth.com/"
+  },
+  "movement": {
+    "name": "Echo Movement Bridge",
+    "tvl": 1.6736498927110037,
+    "chain": "Bitcoin",
+    "category": "Bridge",
+    "url": "https://vault.echo-protocol.xyz/bridges/Movement"
+  },
+  "linea": {
+    "name": "Linea Bridge",
+    "tvl": 234420074.7064647,
+    "chain": "Ethereum",
+    "category": "Canonical Bridge",
+    "url": "https://bridge.linea.build"
+  },
+  "scroll": {
+    "name": "Scroll Bridge",
+    "tvl": 31806872.15444045,
+    "chain": "Ethereum",
+    "category": "Canonical Bridge",
+    "url": "https://portal.scroll.io/bridge"
+  },
+  "ethena": {
+    "name": "Ethena USDe",
+    "tvl": 4582231694.102331,
+    "chain": "Ethereum",
+    "category": "Basis Trading",
+    "url": "https://www.app.ethena.fi/join/3y20d"
+  },
+  "pendle": {
+    "name": "Pendle V2",
+    "tvl": 1062083413.0880964,
+    "chain": "Multi-Chain",
+    "category": "Yield",
+    "url": "https://pendle.finance/"
+  },
+  "morpho": {
+    "name": "Morpho Blue",
+    "tvl": 11198467081.483936,
+    "chain": "Multi-Chain",
+    "category": "Lending",
+    "url": "https://app.morpho.org"
+  },
+  "aerodrome": {
+    "name": "Aerodrome Slipstream",
+    "tvl": 110684169.91794428,
+    "chain": "Base",
+    "category": "Dexs",
+    "url": "https://aerodrome.finance/"
+  },
+  "uniswap": {
+    "name": "Uniswap V3",
+    "tvl": 1608207763.050673,
+    "chain": "Multi-Chain",
+    "category": "Dexs",
+    "url": "https://app.uniswap.org/"
+  },
+  "lido": {
+    "name": "Lido",
+    "tvl": 22692620164.8471,
+    "chain": "Multi-Chain",
+    "category": "Liquid Staking",
+    "url": "https://lido.fi/"
+  },
+  "symbiotic": {
+    "name": "Symbiotic",
+    "tvl": 319792228.87943935,
+    "chain": "Ethereum",
+    "category": "Collateral Markets",
+    "url": "https://symbiotic.fi"
+  },
+  "polymarket": {
+    "name": "Polymarket International",
+    "tvl": 398978447.9055542,
+    "chain": "Polygon",
+    "category": "Prediction Market",
+    "url": "https://polymarket.com"
+  },
+  "farcaster": {
+    "name": "Farcaster SoFi",
+    "tvl": 0,
+    "chain": "",
+    "category": "SoFi",
+    "url": "https://www.farcaster.xyz/"
+  },
+  "lens": {
+    "name": "Lens Chain",
+    "tvl": 493473.31579720083,
+    "chain": "Ethereum",
+    "category": "Canonical Bridge",
+    "url": "https://lens.xyz"
+  },
+  "celestia": {
+    "name": "Celestia",
+    "tvl": 0,
+    "chain": "",
+    "category": "Canonical Bridge",
+    "url": "https://celestia.org"
+  },
+  "sui": {
+    "name": "Suilend",
+    "tvl": 148032670.53756335,
+    "chain": "Sui",
+    "category": "Lending",
+    "url": "https://www.suilend.fi"
+  },
+  "aptos": {
+    "name": "Aave Aptos",
+    "tvl": 334368.8572697295,
+    "chain": "Aptos",
+    "category": "Lending",
+    "url": "https://aave.com"
+  }
+}
